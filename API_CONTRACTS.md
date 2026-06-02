@@ -49,5 +49,25 @@ Retorna endereco e coordenadas ou erro validavel.
 
 O admin consome contratos locais em `src/contracts.ts`. A UI da spec 002 chama
 `GET /v1/areas`, `POST /v1/admin/geocode/cep` e `POST /v1/admin/lawyers` pelo
-backend, usando Bearer token admin informado pelo operador. Login visual admin e
-smoke com token real ainda estao pendentes.
+backend. Antes da spec 006 o fluxo usava Bearer token admin informado pelo operador;
+agora o token vem da sessao admin autenticada. O fluxo foi validado com token admin
+real contra backend/Supabase pelo smoke e2e `Meu Advogado 2.0 - back/scripts/admin-form-smoke.ts`,
+incluindo geocode, list, create e limpeza automatica via service role. A spec 006
+validou login visual admin, sessao, logout, rota privada bloqueada e usuario nao-admin
+bloqueado em smoke assistido.
+
+## Spec 006 - Login E Sessao Admin
+
+Contrato alvo:
+
+- Login visual admin com email/senha usando Supabase Auth REST com anon key publica.
+- Validacao de role por backend em `GET /v1/me`.
+- Todas as rotas operacionais admin continuam exigindo `Authorization: Bearer <token>` com role `admin`.
+
+Regras:
+
+- O admin nao acessa tabelas Supabase para regra de negocio.
+- Service role nunca vai para o admin.
+- Senha nao e persistida.
+- Token completo nao deve aparecer em logs, docs, console ou harness.
+- Usuario autenticado sem role `admin` recebe bloqueio seguro.

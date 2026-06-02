@@ -18,10 +18,10 @@ const exitCode = steps.some((step) => step.exitCode !== 0) ? 1 : 0;
 const report = {
   environment: "admin",
   cwd,
-  objective: "Harness da fundacao admin: tipos, testes, build e smoke shell.",
+  objective: "Harness admin: tipos, testes, build e smoke de login/sessao.",
   exitCode,
   result: exitCode === 0 ? "OK" : "FALHOU",
-  gaps: ["Login visual admin ainda nao implementado; a tela consome Bearer token informado pelo operador."],
+  gaps: ["Smoke visual com credencial admin real ainda deve ser executado antes de operar em staging/producao."],
   steps
 };
 

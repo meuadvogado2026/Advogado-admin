@@ -81,7 +81,9 @@ export class AdminApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.PROD ? "https://advogado-back-production.up.railway.app" : "http://localhost:3333");
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);

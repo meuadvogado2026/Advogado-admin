@@ -10,6 +10,14 @@ import {
   LawyerFormState,
   LegalArea
 } from "./adminApi";
+import {
+  AdminSession,
+  clearStoredSession,
+  fetchCurrentUser,
+  loadStoredSession,
+  loginAdmin,
+  storeSession
+} from "./authApi";
 import { kpis } from "./contracts";
 import "./styles/app.css";
 
@@ -26,7 +34,12 @@ function formatCoordinates(coordinates: Coordinates | null) {
 }
 
 export function App() {
-  const [token, setToken] = useState("");
+  const [session, setSession] = useState<AdminSession | null>(() => loadStoredSession());
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [authFeedback, setAuthFeedback] = useState<Feedback>({ kind: "idle", message: "" });
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(Boolean(session));
   const [areas, setAreas] = useState<LegalArea[]>([]);
   const [form, setForm] = useState<LawyerFormState>(emptyLawyerForm);
   const [address, setAddress] = useState<CepAddress | null>(null);
@@ -34,6 +47,7 @@ export function App() {
   const [feedback, setFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const token = session?.accessToken ?? "";
 
   useEffect(() => {
     fetchAreas()
@@ -46,10 +60,51 @@ export function App() {
       });
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!session) {
+      setIsCheckingSession(false);
+      if (window.location.pathname !== "/login") {
+        window.history.replaceState(null, "", "/login");
+      }
+      return;
+    }
+
+    fetchCurrentUser(session.accessToken)
+      .then((user) => {
+        if (cancelled) return;
+        if (user.role !== "admin") {
+          clearStoredSession();
+          setSession(null);
+          setAuthFeedback({ kind: "error", message: "Sessao sem permissao admin." });
+          return;
+        }
+        const refreshed = { ...session, user };
+        setSession(refreshed);
+        storeSession(refreshed);
+        if (window.location.pathname === "/login") {
+          window.history.replaceState(null, "", "/");
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearStoredSession();
+        setSession(null);
+        setAuthFeedback({ kind: "error", message: "Sessao expirada. Entre novamente." });
+      })
+      .finally(() => {
+        if (!cancelled) setIsCheckingSession(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const canSubmit = useMemo(
     () =>
       Boolean(
-        token &&
+        session &&
           form.name &&
           form.email &&
           form.whatsapp &&
@@ -59,8 +114,36 @@ export function App() {
           form.officeCep &&
           form.officeNumber
       ),
-    [form, token]
+    [form, session]
   );
+
+  async function handleLogin(event: FormEvent) {
+    event.preventDefault();
+    setIsLoggingIn(true);
+    setAuthFeedback({ kind: "info", message: "Validando acesso admin..." });
+    try {
+      const nextSession = await loginAdmin(loginEmail, loginPassword);
+      storeSession(nextSession);
+      setSession(nextSession);
+      setLoginPassword("");
+      setAuthFeedback({ kind: "success", message: "Sessao admin iniciada." });
+      window.history.replaceState(null, "", "/");
+    } catch (error) {
+      clearStoredSession();
+      const message = error instanceof AdminApiError ? error.message : "Falha ao entrar.";
+      setAuthFeedback({ kind: "error", message });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
+  function handleLogout() {
+    clearStoredSession();
+    setSession(null);
+    setFeedback({ kind: "idle", message: "" });
+    setAuthFeedback({ kind: "info", message: "Sessao encerrada." });
+    window.history.replaceState(null, "", "/login");
+  }
 
   function updateForm(field: keyof LawyerFormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -72,7 +155,7 @@ export function App() {
 
   async function handleGeocode() {
     if (!token) {
-      setFeedback({ kind: "error", message: "Informe um Bearer token admin antes de consultar CEP." });
+      setFeedback({ kind: "error", message: "Entre como admin antes de consultar CEP." });
       return;
     }
 
@@ -130,14 +213,59 @@ export function App() {
       </aside>
 
       <section className="content">
+        {!session || isCheckingSession ? (
+          <section className="login-view" aria-label="Login administrativo">
+            <form className="panel login-panel" onSubmit={handleLogin}>
+              <div>
+                <p className="eyebrow">Admin</p>
+                <h1>Acesso administrativo</h1>
+              </div>
+
+              <label className="field">
+                <span>Email</span>
+                <input
+                  autoComplete="username"
+                  disabled={isCheckingSession}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                  type="email"
+                  value={loginEmail}
+                />
+              </label>
+
+              <label className="field">
+                <span>Senha</span>
+                <input
+                  autoComplete="current-password"
+                  disabled={isCheckingSession}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  type="password"
+                  value={loginPassword}
+                />
+              </label>
+
+              <button disabled={isCheckingSession || isLoggingIn || !loginEmail || !loginPassword} type="submit">
+                {isCheckingSession ? "Validando sessao" : isLoggingIn ? "Entrando" : "Entrar"}
+              </button>
+
+              {authFeedback.message ? <p className={`feedback ${authFeedback.kind}`}>{authFeedback.message}</p> : null}
+            </form>
+          </section>
+        ) : (
+          <>
         <header className="page-header">
           <div>
-            <p className="eyebrow">Spec 002</p>
+            <p className="eyebrow">Spec 006</p>
             <h1>Cadastro admin por CEP</h1>
+            <p className="session-label">{session.user.email ?? "admin"} - role admin</p>
           </div>
-          <a className="header-action" href="#cadastro">
-            Novo advogado
-          </a>
+          <div className="header-actions">
+            <a className="header-action" href="#cadastro">
+              Novo advogado
+            </a>
+            <button className="secondary-action" onClick={handleLogout} type="button">
+              Sair
+            </button>
+          </div>
         </header>
 
         <section className="kpi-grid" aria-label="Indicadores administrativos" id="dashboard">
@@ -169,17 +297,6 @@ export function App() {
                 <option value="suspended">Suspenso</option>
               </select>
             </div>
-
-            <label className="field wide">
-              <span>Bearer token admin</span>
-              <input
-                autoComplete="off"
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                placeholder="Cole o token admin local"
-                type="password"
-              />
-            </label>
 
             <div className="form-grid">
               <label className="field">
@@ -271,6 +388,8 @@ export function App() {
             {feedback.message ? <p className={`feedback ${feedback.kind}`}>{feedback.message}</p> : null}
           </aside>
         </section>
+          </>
+        )}
       </section>
     </main>
   );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildLawyerPayload, emptyLawyerForm } from "../src/adminApi";
+import { AdminApiError, buildLawyerPayload, emptyLawyerForm } from "../src/adminApi";
+import { fetchCurrentUser } from "../src/authApi";
 import { apiContracts } from "../src/contracts";
 
 describe("admin contracts", () => {
@@ -12,6 +13,11 @@ describe("admin contracts", () => {
     expect(apiContracts.adminGeocodeCep).toBe("/v1/admin/geocode/cep");
     expect(Object.values(apiContracts).some((path) => path.includes("brasilapi"))).toBe(false);
     expect(Object.values(apiContracts).some((path) => path.includes("nominatim"))).toBe(false);
+  });
+
+  it("points session validation to the backend boundary only", () => {
+    expect(apiContracts.me).toBe("/v1/me");
+    expect(Object.values(apiContracts).some((path) => path.includes("supabase"))).toBe(false);
   });
 
   it("builds the backend lawyer payload with normalized OAB state", () => {
@@ -40,5 +46,43 @@ describe("admin contracts", () => {
       officeNumber: "100",
       status: "approved"
     });
+  });
+
+  it("fetches the current admin user without exposing token in the response", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.headers).toEqual({ Authorization: "Bearer redacted-test-token" });
+      return new Response(JSON.stringify({ user: { id: "admin-1", email: "admin@example.test", role: "admin" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }) as typeof fetch;
+
+    try {
+      await expect(fetchCurrentUser("redacted-test-token")).resolves.toEqual({
+        id: "admin-1",
+        email: "admin@example.test",
+        role: "admin"
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("maps session validation failures to AdminApiError", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: { message: "Token invalido." } }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" }
+      })) as typeof fetch;
+
+    try {
+      await expect(fetchCurrentUser("redacted-test-token")).rejects.toMatchObject(
+        new AdminApiError("Token invalido.", 401)
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

@@ -42,4 +42,15 @@ Admin web chama API backend. Nao consulta Supabase diretamente para regra de neg
 - `src/styles/app.css`: tokens e layout escuro/dourado iniciais.
 - `scripts/harness.ts`: CLI de validacao do ambiente.
 
-Ressalva: guard admin ainda nao foi implementado; o shell e local/mocked.
+Ressalva: smoke visual com credencial admin real ainda deve ser executado antes de staging/producao.
+
+## Spec 006 - Auth Admin
+
+Implementado:
+
+- `/login` como rota publica operacional.
+- Rotas privadas protegidas por guard frontend e, obrigatoriamente, por role guard backend.
+- Login pode usar Supabase Auth REST com anon key publica somente para autenticacao; regra de negocio e autorizacao de dominio seguem no backend.
+- Validacao de role deve passar pelo backend (`GET /v1/me` ou equivalente).
+- Sessao local deve permitir logout e limpeza em caso de token expirado/invalido.
+- O formulario de advogado deixou de depender de Bearer token colado manualmente.

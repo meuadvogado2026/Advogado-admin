@@ -61,11 +61,34 @@ select {
 .page-header,
 .panel-heading,
 .address-row,
-.form-actions {
+.form-actions,
+.header-actions {
   align-items: center;
   display: flex;
   justify-content: space-between;
   gap: 16px;
+}
+
+.header-actions {
+  justify-content: flex-end;
+}
+
+.session-label {
+  color: #665f54;
+  margin: 8px 0 0;
+}
+
+.login-view {
+  align-items: center;
+  display: grid;
+  min-height: calc(100vh - 64px);
+}
+
+.login-panel {
+  display: grid;
+  gap: 18px;
+  max-width: 440px;
+  width: 100%;
 }
 
 .eyebrow {
@@ -265,6 +288,7 @@ dd {
   .sidebar nav,
   .kpi-grid,
   .page-header,
+  .header-actions,
   .panel-heading,
   .address-row {
     display: grid;

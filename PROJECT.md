@@ -1,6 +1,6 @@
 # Admin Project - Meu Advogado 2.0
 
-**Fase:** fundacao inicial executavel  
+**Fase:** admin MVP com formulario de advogado validado por backend real / spec 006 login sessao implementada
 **Stack alvo:** React web + TypeScript  
 **Hospedagem alvo:** Vercel
 
@@ -32,11 +32,14 @@ Construir o painel administrativo para operar a plataforma Meu Advogado 2.0.
 - `../.codex/SPEC_Specs/SPEC_MeuAdvogado20_SDD.md`
 - `../Telas/painel_administrativo_web`
 
-## Scaffold Atual
+## Estado Atual
 
 - React + Vite + TypeScript.
-- Shell administrativo com sidebar, KPIs, busca e tabela placeholder de advogados.
-- Contratos locais apontando para backend (`/v1/admin/lawyers`) e sem acesso direto ao Supabase.
+- Shell administrativo com sidebar e formulario de cadastro de advogado.
+- UI da spec 002 consulta `GET /v1/areas`, `POST /v1/admin/geocode/cep` e salva via `POST /v1/admin/lawyers`.
+- Contratos locais apontam para backend e nao acessam Supabase, BrasilAPI ou Nominatim diretamente.
+- Formulario validado com token admin real contra backend/Supabase por smoke e2e no backend, com limpeza automatica.
+- Login visual admin implementado na spec 006: `/login`, sessao local, guard, validacao de role via backend e logout substituem o Bearer token manual.
 - Harness CLI e smoke estrutural.
 
 ## Scripts
