@@ -1,8 +1,8 @@
 # Admin Status - Meu Advogado 2.0
 
 **Ultima atualizacao:** 2026-06-02
-**Fase:** ADMIN MVP / SPEC 008 PARTE 2 LOCAL OK
-**Veredito:** OK_COM_RESSALVAS
+**Fase:** ADMIN MVP / SPEC 008 PARTE 2 PUBLICACAO BLOQUEADA
+**Veredito:** QUESTIONAR_PUBLICACAO_GITHUB_403
 
 ## Concluido
 
@@ -32,6 +32,7 @@
 - [x] Gates spec 008 Parte 1 admin: `npm run typecheck` exit 0, `npm run test` exit 0, `npm run build` exit 0, `npm run smoke` exit 0, `npm run harness` exit 0. Playwright local em `http://127.0.0.1:5174/login` confirmou logo, 4 botoes de navegacao e ausencia de anchors; screenshot em `harness-results/spec008-admin-login-shell.png`.
 - [x] Spec 008 Parte 2 implementada localmente: formulario de advogado captura URL da foto, URL da capa, mini bio e bio completa, enviando tudo pelo backend sem upload e sem acesso direto ao Supabase.
 - [x] Gates spec 008 Parte 2 admin: `npm run harness` exit 0; teste de contrato valida payload visual com normalizacao de campos vazios para `null`.
+- [ ] Publicacao Vercel da Parte 2 bloqueada: commit local `3253b71` aguarda push; `git push origin main` falhou com GitHub `403` para `israelcknegocios`.
 
 ## Em Andamento
 
@@ -50,4 +51,4 @@
 
 ## Proximo Passo
 
-Spec 008 Parte 2 esta pronta localmente. Proximo ciclo recomendado para admin: publicar a nova UI na Vercel apos backend visual estar publicado e repetir smoke proporcional com cadastro descartavel contendo URL/bio, sem registrar PII sensivel.
+Spec 008 Parte 2 esta validada localmente, mas bloqueada para publicacao por GitHub `403`. Proximo ciclo recomendado para admin: corrigir permissao/credencial de push, publicar `3253b71` na Vercel apos backend visual estar publicado e repetir smoke proporcional com cadastro descartavel contendo URL/bio, sem registrar PII sensivel.
