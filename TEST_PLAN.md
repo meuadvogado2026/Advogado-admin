@@ -80,3 +80,27 @@ Gates pendentes para producao:
 - `VITE_API_BASE_URL` deve apontar para `https://advogado-back-production.up.railway.app`.
 - Backend publicado deve responder `GET /v1/me`.
 - Repetir smoke assistido com credencial admin real redigida e cadastro descartavel com limpeza.
+
+## Smoke Producao Vercel Pos-Publicacao - 2026-06-02
+
+Validacao sem credenciais reais apos admin commit `cb0b707` e backend commit `e621676`:
+
+- `https://advogado20admin.vercel.app/`: HTTP `200`, titulo `Meu Advogado 2.0 Admin`.
+- `https://advogado20admin.vercel.app/login`: HTTP `200`.
+- `/login` renderizou Email, Senha e Entrar.
+- Bundle publicado aponta para `https://advogado-back-production.up.railway.app` e nao para `localhost:3333`.
+- Bundle nao contem campo/token manual como caminho operacional.
+- Backend Railway respondeu `GET /v1/me` sem token com `401`.
+- Browser falhou `GET https://advogado-back-production.up.railway.app/v1/areas` por CORS.
+- Checks CORS: `OPTIONS /v1/me`, `/v1/admin/geocode/cep` e `/v1/admin/lawyers` retornaram `204`, mas sem `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app`.
+- Bundle publicado nao contem `VITE_SUPABASE_ANON_KEY`; login real depende de env Vercel e rebuild.
+- Evidencia sem credenciais: `harness-results/vercel-admin-login-updated.png`.
+
+Veredito: `QUESTIONAR_ENV_ADMIN_PRODUCAO`.
+
+Gates pendentes para producao:
+
+- Configurar `VITE_SUPABASE_ANON_KEY` publica na Vercel sem registrar valor.
+- Configurar `CORS_ORIGINS` no Railway incluindo `https://advogado20admin.vercel.app`.
+- Redeployar Vercel/Railway se necessario.
+- Repetir smoke assistido com credencial admin real redigida e cadastro descartavel com limpeza.
