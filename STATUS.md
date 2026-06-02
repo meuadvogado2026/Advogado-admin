@@ -37,9 +37,9 @@
 
 - Nenhum bloqueio aberto para a spec 006 local. Para operar contra producao/Railway, repetir smoke proporcional no ambiente publicado.
 - Admin Vercel publicado esta alinhado ao login da spec 006, mas o build publicado nao contem `VITE_SUPABASE_ANON_KEY`; configurar a env publica na Vercel e rebuildar.
-- Backend Railway nao retornou `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app`; o browser bloqueia `GET /v1/areas` por CORS antes do login.
+- Backend Railway passou a retornar `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app` apos o commit backend `844c048`; o browser carrega `/v1/areas` com `200` e sem falha.
 - Proximos ciclos devem ser iniciados pela raiz do projeto para carregar a governanca central `.codex/` e specs em `.codex/specs/`.
 
 ## Proximo Passo
 
-Spec 006 segue validada localmente, mas o admin publicado esta `QUESTIONAR_ENV_ADMIN_PRODUCAO`. Proximo ciclo recomendado para admin: configurar `VITE_SUPABASE_ANON_KEY` na Vercel, garantir CORS Railway para a origem publicada, redeployar e repetir smoke `/login -> admin -> painel -> CEP -> cadastro descartavel -> logout`.
+Spec 006 segue validada localmente, mas o admin publicado esta `QUESTIONAR_ENV_ADMIN_PRODUCAO`. Proximo ciclo recomendado para admin: configurar `VITE_SUPABASE_ANON_KEY` na Vercel, redeployar e repetir smoke `/login -> admin -> painel -> CEP -> cadastro descartavel -> logout`.

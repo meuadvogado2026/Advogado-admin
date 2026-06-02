@@ -101,6 +101,24 @@ Veredito: `QUESTIONAR_ENV_ADMIN_PRODUCAO`.
 Gates pendentes para producao:
 
 - Configurar `VITE_SUPABASE_ANON_KEY` publica na Vercel sem registrar valor.
-- Configurar `CORS_ORIGINS` no Railway incluindo `https://advogado20admin.vercel.app`.
 - Redeployar Vercel/Railway se necessario.
+- Repetir smoke assistido com credencial admin real redigida e cadastro descartavel com limpeza.
+
+## Smoke Producao CORS Pos-Fix Backend - 2026-06-02
+
+Validacao sem credenciais reais apos backend commit `844c048`:
+
+- `GET /v1/areas`: `200`, `Access-Control-Allow-Origin: https://advogado20admin.vercel.app`.
+- `GET /v1/me` sem token: `401`, `Access-Control-Allow-Origin: https://advogado20admin.vercel.app`.
+- `OPTIONS /v1/me`: `204`, `Access-Control-Allow-Origin: https://advogado20admin.vercel.app`.
+- `OPTIONS /v1/admin/geocode/cep`: `204`, `Access-Control-Allow-Origin: https://advogado20admin.vercel.app`.
+- `OPTIONS /v1/admin/lawyers`: `204`, `Access-Control-Allow-Origin: https://advogado20admin.vercel.app`.
+- Playwright em `/login` carregou `GET /v1/areas` com `200` e sem falha.
+- Bundle Vercel ainda nao contem `VITE_SUPABASE_ANON_KEY`.
+
+Veredito: `QUESTIONAR_ENV_ADMIN_PRODUCAO`.
+
+Gate pendente para producao:
+
+- Configurar `VITE_SUPABASE_ANON_KEY` publica na Vercel sem registrar valor.
 - Repetir smoke assistido com credencial admin real redigida e cadastro descartavel com limpeza.
