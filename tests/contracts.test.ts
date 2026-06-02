@@ -31,6 +31,10 @@ describe("admin contracts", () => {
       mainAreaId: "area-civil",
       officeCep: "01001-000",
       officeNumber: "100",
+      avatarUrl: " https://cdn.example.test/avatar.jpg ",
+      coverUrl: "",
+      miniBio: " Atendimento civil ",
+      fullBio: "",
       status: "approved"
     });
 
@@ -44,6 +48,10 @@ describe("admin contracts", () => {
       secondaryAreaIds: [],
       officeCep: "01001-000",
       officeNumber: "100",
+      avatarUrl: "https://cdn.example.test/avatar.jpg",
+      coverUrl: null,
+      miniBio: "Atendimento civil",
+      fullBio: null,
       status: "approved"
     });
   });

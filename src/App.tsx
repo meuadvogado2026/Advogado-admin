@@ -20,8 +20,10 @@ import {
 } from "./authApi";
 import { kpis } from "./contracts";
 import "./styles/app.css";
+import logo from "./assets/logo-blue.png";
 
 type Feedback = { kind: "idle" | "success" | "error" | "info"; message: string };
+type AdminView = "dashboard" | "lawyers" | "newLawyer" | "operation";
 
 function formatAddress(address: CepAddress) {
   const parts = [address.street, address.neighborhood, address.city, address.state].filter(Boolean);
@@ -35,6 +37,7 @@ function formatCoordinates(coordinates: Coordinates | null) {
 
 export function App() {
   const [session, setSession] = useState<AdminSession | null>(() => loadStoredSession());
+  const [activeView, setActiveView] = useState<AdminView>("dashboard");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [authFeedback, setAuthFeedback] = useState<Feedback>({ kind: "idle", message: "" });
@@ -145,6 +148,31 @@ export function App() {
     window.history.replaceState(null, "", "/login");
   }
 
+  function Icon({ name }: { name: AdminView }) {
+    const paths: Record<AdminView, string> = {
+      dashboard: "M4 5h7v7H4V5Zm9 0h7v4h-7V5ZM4 14h7v5H4v-5Zm9-3h7v8h-7v-8Z",
+      lawyers:
+        "M8 11a4 4 0 1 1 3.2-1.6A5.8 5.8 0 0 0 8 11Zm0 2c3.3 0 6 1.7 6 3.8V19H2v-2.2C2 14.7 4.7 13 8 13Zm9-1a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm-2 2.2c.6-.1 1.3-.2 2-.2 2.8 0 5 1.3 5 3v2h-6v-2.2c0-1-.4-1.9-1-2.6Z",
+      newLawyer:
+        "M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7V4Z",
+      operation:
+        "M12 2 3 6v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V6l-9-4Zm0 3.2 6 2.7V12c0 3.8-2.5 7.2-6 8.4-3.5-1.2-6-4.6-6-8.4V7.9l6-2.7Z"
+    };
+
+    return (
+      <svg aria-hidden="true" className="nav-icon" viewBox="0 0 24 24">
+        <path d={paths[name]} />
+      </svg>
+    );
+  }
+
+  const navItems: Array<{ view: AdminView; label: string }> = [
+    { view: "dashboard", label: "Dashboard" },
+    { view: "lawyers", label: "Advogados" },
+    { view: "newLawyer", label: "Novo Advogado" },
+    { view: "operation", label: "Operacao" }
+  ];
+
   function updateForm(field: keyof LawyerFormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
     if (field === "officeCep") {
@@ -203,12 +231,22 @@ export function App() {
   return (
     <main className="admin-shell">
       <aside className="sidebar" aria-label="Navegacao administrativa">
-        <strong>Advogado 2.0</strong>
+        <div className="sidebar-brand">
+          <img alt="Advogado 2.0" className="sidebar-logo" src={logo} />
+          <strong>Advogado 2.0</strong>
+        </div>
         <nav>
-          <a href="#dashboard">Dashboard</a>
-          <a href="#advogados">Advogados</a>
-          <a href="#cadastro">Cadastro</a>
-          <a href="#operacao">Operacao</a>
+          {navItems.map((item) => (
+            <button
+              className={`nav-button ${activeView === item.view ? "active" : ""}`}
+              key={item.view}
+              onClick={() => setActiveView(item.view)}
+              type="button"
+            >
+              <Icon name={item.view} />
+              {item.label}
+            </button>
+          ))}
         </nav>
       </aside>
 
@@ -216,6 +254,7 @@ export function App() {
         {!session || isCheckingSession ? (
           <section className="login-view" aria-label="Login administrativo">
             <form className="panel login-panel" onSubmit={handleLogin}>
+              <img alt="Advogado 2.0" className="login-logo" src={logo} />
               <div>
                 <p className="eyebrow">Admin</p>
                 <h1>Acesso administrativo</h1>
@@ -254,21 +293,21 @@ export function App() {
           <>
         <header className="page-header">
           <div>
-            <p className="eyebrow">Spec 006</p>
-            <h1>Cadastro admin por CEP</h1>
+            <p className="eyebrow">Spec 008 - Parte 1</p>
+            <h1>{navItems.find((item) => item.view === activeView)?.label}</h1>
             <p className="session-label">{session.user.email ?? "admin"} - role admin</p>
           </div>
           <div className="header-actions">
-            <a className="header-action" href="#cadastro">
+            <button className="header-action" onClick={() => setActiveView("newLawyer")} type="button">
               Novo advogado
-            </a>
+            </button>
             <button className="secondary-action" onClick={handleLogout} type="button">
               Sair
             </button>
           </div>
         </header>
 
-        <section className="kpi-grid" aria-label="Indicadores administrativos" id="dashboard">
+        {activeView === "dashboard" ? <section className="kpi-grid" aria-label="Indicadores administrativos">
           {kpis.map((kpi) => (
             <article className="kpi" key={kpi.label}>
               <span>{kpi.label}</span>
@@ -276,10 +315,28 @@ export function App() {
               <small>{kpi.helper}</small>
             </article>
           ))}
-        </section>
+        </section> : null}
 
-        <section className="workspace">
-          <form className="panel form-panel" id="cadastro" onSubmit={handleSubmit}>
+        {activeView === "lawyers" ? (
+          <section className="panel table-panel" aria-label="Advogados">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Advogados</p>
+                <h2>Operacao de perfis</h2>
+              </div>
+              <button className="secondary-action" onClick={() => setActiveView("newLawyer")} type="button">
+                Novo advogado
+              </button>
+            </div>
+            <p className="muted-copy">
+              A listagem operacional completa fica para o proximo ciclo. O cadastro por CEP segue disponivel em view
+              propria e protegido por sessao admin.
+            </p>
+          </section>
+        ) : null}
+
+        {activeView === "newLawyer" ? <section className="workspace">
+          <form className="panel form-panel" onSubmit={handleSubmit}>
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Advogado</p>
@@ -340,6 +397,44 @@ export function App() {
               </label>
             </div>
 
+            <div className="visual-grid">
+              <label className="field">
+                <span>URL da foto</span>
+                <input
+                  placeholder="https://..."
+                  value={form.avatarUrl}
+                  onChange={(event) => updateForm("avatarUrl", event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>URL da capa</span>
+                <input
+                  placeholder="https://..."
+                  value={form.coverUrl}
+                  onChange={(event) => updateForm("coverUrl", event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Mini bio</span>
+                <textarea
+                  maxLength={240}
+                  value={form.miniBio}
+                  onChange={(event) => updateForm("miniBio", event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Bio completa</span>
+                <textarea
+                  maxLength={1200}
+                  value={form.fullBio}
+                  onChange={(event) => updateForm("fullBio", event.target.value)}
+                />
+              </label>
+            </div>
+
             <div className="address-row">
               <label className="field">
                 <span>CEP</span>
@@ -368,7 +463,7 @@ export function App() {
             </footer>
           </form>
 
-          <aside className="panel result-panel" id="operacao" aria-live="polite">
+          <aside className="panel result-panel" aria-live="polite">
             <div>
               <p className="eyebrow">Endereco</p>
               <h2>Previa do backend</h2>
@@ -387,7 +482,31 @@ export function App() {
 
             {feedback.message ? <p className={`feedback ${feedback.kind}`}>{feedback.message}</p> : null}
           </aside>
-        </section>
+        </section> : null}
+
+        {activeView === "operation" ? (
+          <section className="panel result-panel" aria-live="polite">
+            <div>
+              <p className="eyebrow">Operacao</p>
+              <h2>Status do backend</h2>
+            </div>
+            <dl>
+              <div>
+                <dt>Endereco consultado</dt>
+                <dd>{address ? formatAddress(address) : "Nenhuma consulta recente nesta sessao"}</dd>
+              </div>
+              <div>
+                <dt>Coordenada</dt>
+                <dd>{formatCoordinates(coordinates)}</dd>
+              </div>
+              <div>
+                <dt>Sessao</dt>
+                <dd>Admin validado pelo backend via /v1/me.</dd>
+              </div>
+            </dl>
+            {feedback.message ? <p className={`feedback ${feedback.kind}`}>{feedback.message}</p> : null}
+          </section>
+        ) : null}
           </>
         )}
       </section>

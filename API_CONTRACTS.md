@@ -20,7 +20,7 @@ Cadastro deve aceitar:
 - especialidades;
 - WhatsApp;
 - CEP e endereco;
-- foto/capa;
+- URL HTTPS de foto/capa, mini bio e bio completa, sem upload;
 - status/plano.
 
 ## CEP
@@ -55,6 +55,10 @@ real contra backend/Supabase pelo smoke e2e `Meu Advogado 2.0 - back/scripts/adm
 incluindo geocode, list, create e limpeza automatica via service role. A spec 006
 validou login visual admin, sessao, logout, rota privada bloqueada e usuario nao-admin
 bloqueado em smoke assistido.
+
+Spec 008 Parte 2 ampliou o cadastro para enviar `avatarUrl`, `coverUrl`, `miniBio` e
+`fullBio` pelo backend. URLs inseguras/invalidas sao normalizadas pelo backend para
+`null`; o admin nao faz upload nem acessa Supabase diretamente.
 
 ## Spec 006 - Login E Sessao Admin
 

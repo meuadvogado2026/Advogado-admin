@@ -41,6 +41,10 @@ export type LawyerFormState = {
   mainAreaId: string;
   officeCep: string;
   officeNumber: string;
+  avatarUrl: string;
+  coverUrl: string;
+  miniBio: string;
+  fullBio: string;
   status: LawyerStatus;
 };
 
@@ -53,8 +57,17 @@ export const emptyLawyerForm: LawyerFormState = {
   mainAreaId: "",
   officeCep: "",
   officeNumber: "",
+  avatarUrl: "",
+  coverUrl: "",
+  miniBio: "",
+  fullBio: "",
   status: "pending_review"
 };
+
+function optionalTrimmed(value: string) {
+  const trimmed = value.trim();
+  return trimmed || null;
+}
 
 export function buildLawyerPayload(form: LawyerFormState) {
   return {
@@ -67,6 +80,10 @@ export function buildLawyerPayload(form: LawyerFormState) {
     secondaryAreaIds: [],
     officeCep: form.officeCep.trim(),
     officeNumber: form.officeNumber.trim(),
+    avatarUrl: optionalTrimmed(form.avatarUrl),
+    coverUrl: optionalTrimmed(form.coverUrl),
+    miniBio: optionalTrimmed(form.miniBio),
+    fullBio: optionalTrimmed(form.fullBio),
     status: form.status
   };
 }

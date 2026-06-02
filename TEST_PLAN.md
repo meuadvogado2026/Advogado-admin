@@ -118,7 +118,42 @@ Validacao sem credenciais reais apos backend commit `844c048`:
 
 Veredito: `QUESTIONAR_ENV_ADMIN_PRODUCAO`.
 
-Gate pendente para producao:
+Gate pendente daquele momento:
 
 - Configurar `VITE_SUPABASE_ANON_KEY` publica na Vercel sem registrar valor.
 - Repetir smoke assistido com credencial admin real redigida e cadastro descartavel com limpeza.
+
+## Smoke Producao Vercel Pos-Env Supabase - 2026-06-02
+
+Validacao sem credenciais reais apos usuario informar env Vercel configurada e login real bem-sucedido:
+
+- `https://advogado20admin.vercel.app/login`: HTTP `200`.
+- `/login` renderizou Email, Senha e Entrar, sem campo/token manual.
+- Rota privada sem sessao redirecionou para `/login`.
+- Bundle publicado aponta para `https://advogado-back-production.up.railway.app` e nao para `localhost`.
+- Bundle contem configuracao Supabase publica suficiente para login; anon key nao foi impressa nem registrada.
+- `GET /v1/areas` retornou `200` com CORS para Vercel.
+- `GET /v1/me` sem token retornou `401` com CORS para Vercel.
+- `POST /v1/admin/geocode/cep` e `POST /v1/admin/lawyers` sem token retornaram `401` com CORS para Vercel.
+- Preflights de `/v1/me`, `/v1/admin/geocode/cep` e `/v1/admin/lawyers` retornaram `204` com CORS para Vercel.
+
+Veredito: `QUESTIONAR_CREDENCIAL_NECESSARIA`.
+
+Gate pendente para producao:
+
+- Repetir smoke assistido com credencial admin real fornecida no momento: login, painel, CEP, cadastro descartavel, limpeza, logout, rota privada bloqueada e negativo nao-admin se houver credencial segura.
+
+## Smoke Producao Vercel Autenticado - 2026-06-02
+
+Validacao assistida com credencial admin real digitada pelo usuario no navegador:
+
+- Login real abriu painel autenticado com role admin.
+- Painel publicado manteve formulario operacional sem token manual.
+- CEP valido foi consultado pela UI via backend Railway.
+- Advogado descartavel foi cadastrado pela UI via `POST /v1/admin/lawyers`.
+- Limpeza foi executada via service role local mirando apenas identificadores unicos do smoke.
+- Verificacao final da limpeza: `remainingProfiles=0`, `remainingLawyers=0`.
+- Logout removeu sessao e a rota privada voltou para `/login`.
+- Negativo nao-admin nao executado por falta de credencial segura desse perfil.
+
+Veredito: `VALIDADA_SMOKE_ADMIN_PRODUCAO`.
