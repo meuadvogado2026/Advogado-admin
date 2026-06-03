@@ -1,6 +1,6 @@
 # Admin API Contracts - Meu Advogado 2.0
 
-**Estado:** UI spec 002 integrada aos contratos backend
+**Estado:** UI spec 009 integrada aos contratos backend de gestao de advogados
 
 ## Dashboard
 
@@ -11,7 +11,6 @@
 - `GET /v1/admin/lawyers`
 - `POST /v1/admin/lawyers`
 - `PATCH /v1/admin/lawyers/:id`
-- `PATCH /v1/admin/lawyers/:id/status`
 
 Cadastro deve aceitar:
 
@@ -59,6 +58,16 @@ bloqueado em smoke assistido.
 Spec 008 Parte 2 ampliou o cadastro para enviar `avatarUrl`, `coverUrl`, `miniBio` e
 `fullBio` pelo backend. URLs inseguras/invalidas sao normalizadas pelo backend para
 `null`; o admin nao faz upload nem acessa Supabase diretamente.
+
+Spec 009 implementou gestao operacional local de advogados na UI:
+
+- `GET /v1/admin/lawyers` carrega a listagem com Bearer token da sessao admin.
+- A listagem retorna identidade operacional hidratada pelo backend: `name`, `email`, OAB, status, `mainAreaId` e `secondaryAreaIds`.
+- Busca e filtro por status sao locais sobre a lista retornada.
+- O detalhe operacional nao exibe CEP completo nem coordenada exata; mostra apenas o estado `Coordenada validada`/`Coordenada pendente`.
+- `PATCH /v1/admin/lawyers/:id` atualiza status com payload minimo `{ "status": "..." }`.
+- A regra de aprovacao com coordenada valida permanece no backend.
+- `POST /v1/admin/lawyers` persiste as especialidades em `lawyer_specialties`; sem acesso direto do admin ao Supabase.
 
 ## Spec 006 - Login E Sessao Admin
 

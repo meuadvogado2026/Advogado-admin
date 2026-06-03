@@ -32,6 +32,31 @@ export type GeocodeCepResult = {
 
 export type LawyerStatus = "draft" | "pending_review" | "approved" | "rejected" | "suspended";
 
+export type LawyerRecord = {
+  id: string;
+  profileId: string;
+  name: string;
+  email: string;
+  whatsapp: string;
+  oabNumber: string;
+  oabState: string;
+  mainAreaId: string;
+  secondaryAreaIds: string[];
+  officeCep: string;
+  officeNumber: string;
+  officeCity?: string | null;
+  officeState?: string | null;
+  officeLat?: number | null;
+  officeLng?: number | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+  miniBio?: string | null;
+  fullBio?: string | null;
+  status: LawyerStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type LawyerFormState = {
   name: string;
   email: string;
@@ -88,6 +113,10 @@ export function buildLawyerPayload(form: LawyerFormState) {
   };
 }
 
+export function buildLawyerStatusPatch(status: LawyerStatus) {
+  return { status };
+}
+
 export class AdminApiError extends Error {
   constructor(
     message: string,
@@ -140,4 +169,23 @@ export async function createLawyer(token: string, form: LawyerFormState) {
     body: JSON.stringify(buildLawyerPayload(form))
   });
   return parseJson(response);
+}
+
+export async function fetchLawyers(token: string): Promise<{ lawyers: LawyerRecord[]; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminLawyers}`, {
+    headers: authHeaders(token)
+  });
+  return parseJson<{ lawyers: LawyerRecord[]; persistence: string }>(response);
+}
+
+export async function updateLawyerStatus(token: string, lawyerId: string, status: LawyerStatus) {
+  const response = await fetch(
+    `${API_BASE_URL}${apiContracts.adminLawyerById.replace(":id", encodeURIComponent(lawyerId))}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify(buildLawyerStatusPatch(status))
+    }
+  );
+  return parseJson<{ lawyer: LawyerRecord }>(response);
 }

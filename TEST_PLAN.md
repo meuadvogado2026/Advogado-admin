@@ -36,6 +36,25 @@ Todo ciclo admin deve validar:
 - Urgencia pode ser marcada como resolvida.
 - Cliente nao admin nao acessa rotas admin.
 
+## Spec 009 - Gestao Operacional De Advogados
+
+Validacao local executada em 2026-06-03:
+
+- `npm run harness` exit code `0`.
+- Typecheck passou.
+- Testes de contrato passaram com 9 testes.
+- Build Vite passou.
+- Smoke estrutural confirmou shell, login/sessao, gestao de advogados, views reais, logo e contratos.
+- Smoke visual local sem credenciais em `http://127.0.0.1:5175/login` confirmou `Acesso administrativo`, `Email`, `Senha`, `Entrar`, ausencia de `Bearer token admin` e ausencia da mensagem antiga de listagem para proximo ciclo.
+- Evidencia visual segura: `harness-results/spec009-admin-login-local.png`.
+- Smoke autenticado local com credencial admin real passou em ambiente controlado: admin `http://127.0.0.1:5176`, backend `http://127.0.0.1:3334`, persistencia Supabase real e geocoding stub local.
+- Fluxo validado: login, `Advogados`, `Novo Advogado`, consulta CEP, cadastro descartavel, busca/filtro, detalhe seguro sem CEP/coordenada exata, alteracao de status via `PATCH`, logout e limpeza.
+- Limpeza final confirmou `remainingSpec009Profiles=0`.
+
+Lacuna:
+
+- Repetir smoke proporcional apos deploy Vercel/Railway antes de operar em producao.
+
 ## Evidencias
 
 Registrar comando, cwd, exit code, resultado e lacunas.

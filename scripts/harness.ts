@@ -18,10 +18,10 @@ const exitCode = steps.some((step) => step.exitCode !== 0) ? 1 : 0;
 const report = {
   environment: "admin",
   cwd,
-  objective: "Harness admin: tipos, testes, build e smoke de login/sessao.",
+  objective: "Harness admin: tipos, testes, build e smoke de login/sessao/gestao.",
   exitCode,
   result: exitCode === 0 ? "OK" : "FALHOU",
-  gaps: ["Smoke visual com credencial admin real ainda deve ser executado antes de operar em staging/producao."],
+  gaps: ["Smoke autenticado local da spec 009 passou; repetir smoke proporcional apos deploy Vercel antes de operar em producao."],
   steps
 };
 

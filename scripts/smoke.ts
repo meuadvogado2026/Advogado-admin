@@ -14,9 +14,13 @@ if (
   !app.includes("nav-button") ||
   !app.includes("login-logo") ||
   !app.includes("sidebar-logo") ||
+  !app.includes("fetchLawyers") ||
+  !app.includes("handleStatusChange") ||
+  !app.includes("Gestao operacional") ||
+  app.includes("A listagem operacional completa fica para o proximo ciclo") ||
   app.includes('href="#')
 ) {
-  throw new Error("Smoke admin falhou. Views reais, icones ou logo arredondada da spec 008 ausentes.");
+  throw new Error("Smoke admin falhou. Gestao real, views, icones ou logo arredondada ausentes.");
 }
 
-console.log("Smoke admin OK: shell React, login/sessao, views reais, logo, contracts e entrada Vite existem.");
+console.log("Smoke admin OK: shell React, login/sessao, gestao de advogados, views reais, logo, contracts e entrada Vite existem.");

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { AdminApiError, buildLawyerPayload, emptyLawyerForm } from "../src/adminApi";
+import {
+  AdminApiError,
+  buildLawyerPayload,
+  buildLawyerStatusPatch,
+  emptyLawyerForm,
+  fetchLawyers,
+  updateLawyerStatus
+} from "../src/adminApi";
 import { fetchCurrentUser } from "../src/authApi";
 import { apiContracts } from "../src/contracts";
 
@@ -18,6 +25,11 @@ describe("admin contracts", () => {
   it("points session validation to the backend boundary only", () => {
     expect(apiContracts.me).toBe("/v1/me");
     expect(Object.values(apiContracts).some((path) => path.includes("supabase"))).toBe(false);
+  });
+
+  it("points lawyer updates to the protected backend resource", () => {
+    expect(apiContracts.adminLawyerById).toBe("/v1/admin/lawyers/:id");
+    expect(buildLawyerStatusPatch("approved")).toEqual({ status: "approved" });
   });
 
   it("builds the backend lawyer payload with normalized OAB state", () => {
@@ -89,6 +101,62 @@ describe("admin contracts", () => {
       await expect(fetchCurrentUser("redacted-test-token")).rejects.toMatchObject(
         new AdminApiError("Token invalido.", 401)
       );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("lists lawyers through the backend with the stored admin token", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toContain("/v1/admin/lawyers");
+      expect(init?.headers).toEqual({ Authorization: "Bearer redacted-admin-token", "Content-Type": "application/json" });
+      return new Response(JSON.stringify({ lawyers: [], persistence: "memory" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }) as typeof fetch;
+
+    try {
+      await expect(fetchLawyers("redacted-admin-token")).resolves.toEqual({ lawyers: [], persistence: "memory" });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("updates lawyer status through PATCH without exposing coordinates", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toContain("/v1/admin/lawyers/lawyer-1");
+      expect(init?.method).toBe("PATCH");
+      expect(init?.body).toBe(JSON.stringify({ status: "suspended" }));
+      return new Response(
+        JSON.stringify({
+          lawyer: {
+            id: "lawyer-1",
+            profileId: "profile-1",
+            name: "Dra. Teste",
+            email: "lawyer@example.test",
+            whatsapp: "11999999999",
+            oabNumber: "123456",
+            oabState: "SP",
+            mainAreaId: "civil",
+            secondaryAreaIds: [],
+            officeCep: "01001-000",
+            officeNumber: "100",
+            status: "suspended",
+            createdAt: "2026-06-03T00:00:00.000Z",
+            updatedAt: "2026-06-03T00:00:00.000Z"
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    try {
+      await expect(updateLawyerStatus("redacted-admin-token", "lawyer-1", "suspended")).resolves.toMatchObject({
+        lawyer: { id: "lawyer-1", status: "suspended" }
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }
