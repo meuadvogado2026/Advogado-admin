@@ -18,5 +18,6 @@ export const apiContracts = {
 export const kpis = [
   { label: "Advogados", value: "API", helper: "Cadastro passa pelo backend" },
   { label: "CEP", value: "ON", helper: "Geocoding protegido por admin" },
-  { label: "Match", value: "PostGIS", helper: "Aprovado exige coordenada" }
+  { label: "Match", value: "PostGIS", helper: "Aprovado exige coordenada" },
+  { label: "Operacao", value: "OK", helper: "Sessao e backend monitorados" }
 ];

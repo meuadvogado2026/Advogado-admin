@@ -697,6 +697,50 @@ export function App() {
     }
   }
 
+  if (!session || isCheckingSession) {
+    return (
+      <main className="login-shell">
+        <section className="login-view" aria-label="Login administrativo">
+          <form className="panel login-panel" onSubmit={handleLogin}>
+            <img alt="Advogado 2.0" className="login-logo" src={logo} />
+            <div>
+              <p className="eyebrow">Admin</p>
+              <h1>Acesso administrativo</h1>
+            </div>
+
+            <label className="field">
+              <span>Email</span>
+              <input
+                autoComplete="username"
+                disabled={isCheckingSession}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                type="email"
+                value={loginEmail}
+              />
+            </label>
+
+            <label className="field">
+              <span>Senha</span>
+              <input
+                autoComplete="current-password"
+                disabled={isCheckingSession}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                type="password"
+                value={loginPassword}
+              />
+            </label>
+
+            <button disabled={isCheckingSession || isLoggingIn || !loginEmail || !loginPassword} type="submit">
+              {isCheckingSession ? "Validando sessao" : isLoggingIn ? "Entrando" : "Entrar"}
+            </button>
+
+            {authFeedback.message ? <p className={`feedback ${authFeedback.kind}`}>{authFeedback.message}</p> : null}
+          </form>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="admin-shell">
       <aside className="sidebar" aria-label="Navegacao administrativa">
@@ -717,52 +761,16 @@ export function App() {
             </button>
           ))}
         </nav>
+        <div className="sidebar-health">
+          <span className="health-dot" aria-hidden="true" />
+          <span>Servidor: 100% Online</span>
+        </div>
       </aside>
 
       <section className="content">
-        {!session || isCheckingSession ? (
-          <section className="login-view" aria-label="Login administrativo">
-            <form className="panel login-panel" onSubmit={handleLogin}>
-              <img alt="Advogado 2.0" className="login-logo" src={logo} />
-              <div>
-                <p className="eyebrow">Admin</p>
-                <h1>Acesso administrativo</h1>
-              </div>
-
-              <label className="field">
-                <span>Email</span>
-                <input
-                  autoComplete="username"
-                  disabled={isCheckingSession}
-                  onChange={(event) => setLoginEmail(event.target.value)}
-                  type="email"
-                  value={loginEmail}
-                />
-              </label>
-
-              <label className="field">
-                <span>Senha</span>
-                <input
-                  autoComplete="current-password"
-                  disabled={isCheckingSession}
-                  onChange={(event) => setLoginPassword(event.target.value)}
-                  type="password"
-                  value={loginPassword}
-                />
-              </label>
-
-              <button disabled={isCheckingSession || isLoggingIn || !loginEmail || !loginPassword} type="submit">
-                {isCheckingSession ? "Validando sessao" : isLoggingIn ? "Entrando" : "Entrar"}
-              </button>
-
-              {authFeedback.message ? <p className={`feedback ${authFeedback.kind}`}>{authFeedback.message}</p> : null}
-            </form>
-          </section>
-        ) : (
-          <>
         <header className="page-header">
           <div>
-            <p className="eyebrow">Spec 008 - Parte 1</p>
+            <p className="eyebrow">Painel administrativo</p>
             <h1>{navItems.find((item) => item.view === activeView)?.label}</h1>
             <p className="session-label">{session.user.email ?? "admin"} - role admin</p>
           </div>
@@ -1443,8 +1451,6 @@ export function App() {
             {feedback.message ? <p className={`feedback ${feedback.kind}`}>{feedback.message}</p> : null}
           </section>
         ) : null}
-          </>
-        )}
       </section>
     </main>
   );

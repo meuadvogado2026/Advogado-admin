@@ -2,7 +2,7 @@
 
 **Ultima atualizacao:** 2026-06-04
 **Fase:** ADMIN MVP / PRODUCAO VALIDADA
-**Veredito:** ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK / PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
+**Veredito:** ADMIN_LAYOUT_DARK_LOCAL_OK / ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK / PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
 
 ## Concluido
 
@@ -50,6 +50,7 @@
 - [x] Melhorias publicadas em 2026-06-04 pelo commit `bf93a39`: view `Advogados` ganhou acao de editar advogado usando `PATCH /v1/admin/lawyers/:id`; view `Oracoes` marca/reabre leitura com estado visual; view `Parceiros` permite upload, preview e cadastro de logos. Admin `npm run harness` exit 0, Browser local confirmou `/login`, smoke publico basico `/login` retornou 200 e smoke funcional backend validou oracao lida/parceiro com limpeza.
 - [x] Formulario admin de advogado ganhou campos opcionais HTTPS para Instagram, LinkedIn, Facebook e site profissional, enviados ao backend junto dos demais dados operacionais. Publicacao social fechada em 2026-06-04 com Vercel `/login` 200 e bundle sem `localhost`; backend/mobile publicados e validados.
 - [x] Bugfix publicado no commit `801cdc1`: edicao de advogado agora envia PATCH parcial comparando contra o registro original, permitindo salvar status/redes sociais sem depender de cadastro completo legado e sem reconsultar CEP quando o CEP nao mudou. Admin `npm run harness` exit 0 e Vercel `/login` 200 com bundle novo sem `localhost`.
+- [x] Layout escuro do painel admin implementado localmente em 2026-06-04 usando a referencia visual apenas para layout/cores, preservando a estrutura de menus (`Dashboard`, `Advogados`, `Novo Advogado`, `Oracoes`, `Usuarios`, `Parceiros`, `Operacao`). Login passou a renderizar fora do shell, sem pre-visualizacao dos menus. Gates: `npm run typecheck`, `npm run test`, `npm run build`, `npm run smoke`, `npm run harness` exit 0; smoke visual local confirmou 7 abas, 4 KPIs, sidebar escura e ausencia de sidebar no `/login`.
 
 ## Em Andamento
 
