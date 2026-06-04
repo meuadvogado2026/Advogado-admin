@@ -51,6 +51,7 @@
 - [x] Formulario admin de advogado ganhou campos opcionais HTTPS para Instagram, LinkedIn, Facebook e site profissional, enviados ao backend junto dos demais dados operacionais. Publicacao social fechada em 2026-06-04 com Vercel `/login` 200 e bundle sem `localhost`; backend/mobile publicados e validados.
 - [x] Bugfix publicado no commit `801cdc1`: edicao de advogado agora envia PATCH parcial comparando contra o registro original, permitindo salvar status/redes sociais sem depender de cadastro completo legado e sem reconsultar CEP quando o CEP nao mudou. Admin `npm run harness` exit 0 e Vercel `/login` 200 com bundle novo sem `localhost`.
 - [x] Layout escuro do painel admin implementado localmente em 2026-06-04 usando a referencia visual apenas para layout/cores, preservando a estrutura de menus (`Dashboard`, `Advogados`, `Novo Advogado`, `Oracoes`, `Usuarios`, `Parceiros`, `Operacao`). Login passou a renderizar fora do shell, sem pre-visualizacao dos menus. Gates: `npm run typecheck`, `npm run test`, `npm run build`, `npm run smoke`, `npm run harness` exit 0; smoke visual local confirmou 7 abas, 4 KPIs, sidebar escura e ausencia de sidebar no `/login`.
+- [x] Melhorias admin locais em 2026-06-04: criacao/edicao de advogado agora preserva especialidades secundarias, lista de advogados exibe foto circular/iniciais, Advogados/Usuarios/Oracoes ganharam paginacao local e cache curto em memoria de sessao, tela de Oracoes ganhou cards interativos com filtros e resumo, e a escala tipografica do painel foi reduzida. Gates: `npm run harness` exit 0 com 19 testes; smoke visual autenticado mockado confirmou avatares, paginacao, chips de especialidade, cards de oracao e ausencia de overflow mobile.
 
 ## Em Andamento
 
@@ -74,4 +75,4 @@
 
 ## Proximo Passo
 
-Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. Edicao de advogado esta `ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK`; perfil social esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`; oracao lida/parceiros esta `ADMIN_MELHORIAS_OPERACIONAIS_PRODUCAO_OK`.
+Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. Edicao de advogado esta `ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK`; perfil social esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`; oracao lida/parceiros esta `ADMIN_MELHORIAS_OPERACIONAIS_PRODUCAO_OK`. Melhorias de especialidades secundarias, paginacao/cache curto, avatares e Oracoes interativas estao validadas localmente e prontas para publicacao.

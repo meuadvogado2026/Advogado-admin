@@ -44,6 +44,11 @@ import logo from "./assets/logo-blue.png";
 type Feedback = { kind: "idle" | "success" | "error" | "info"; message: string };
 type AdminView = "dashboard" | "lawyers" | "newLawyer" | "prayers" | "users" | "partners" | "operation";
 
+const CACHE_TTL_MS = 45_000;
+const LAWYERS_PAGE_SIZE = 8;
+const PRAYERS_PAGE_SIZE = 6;
+const USERS_PAGE_SIZE = 8;
+
 function formatAddress(address: CepAddress) {
   const parts = [address.street, address.neighborhood, address.city, address.state].filter(Boolean);
   return parts.join(" - ");
@@ -56,6 +61,56 @@ function formatCoordinates(coordinates: Coordinates | null) {
 
 function formatSafeCoordinateState(lawyer: LawyerRecord) {
   return typeof lawyer.officeLat === "number" && typeof lawyer.officeLng === "number" ? "Coordenada validada" : "Coordenada pendente";
+}
+
+function initials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function paginate<T>(items: T[], page: number, pageSize: number) {
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  return {
+    page: safePage,
+    totalPages,
+    items: items.slice((safePage - 1) * pageSize, safePage * pageSize)
+  };
+}
+
+function Pagination({
+  page,
+  totalItems,
+  totalPages,
+  onNext,
+  onPrevious
+}: {
+  page: number;
+  totalItems: number;
+  totalPages: number;
+  onNext: () => void;
+  onPrevious: () => void;
+}) {
+  if (totalItems === 0) return null;
+  return (
+    <div className="pagination-row" aria-label="Paginacao">
+      <span>
+        Pagina {page} de {totalPages} - {totalItems} registros
+      </span>
+      <div>
+        <button className="secondary-action" disabled={page <= 1} onClick={onPrevious} type="button">
+          Anterior
+        </button>
+        <button className="secondary-action" disabled={page >= totalPages} onClick={onNext} type="button">
+          Proxima
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function formatDate(value: string) {
@@ -116,16 +171,23 @@ export function App() {
   const [isLoadingLawyers, setIsLoadingLawyers] = useState(false);
   const [isUpdatingLawyer, setIsUpdatingLawyer] = useState(false);
   const [editingLawyerId, setEditingLawyerId] = useState<string | null>(null);
+  const [lawyerPage, setLawyerPage] = useState(1);
+  const [lawyersLoadedAt, setLawyersLoadedAt] = useState(0);
   const [prayerRequests, setPrayerRequests] = useState<AdminPrayerRequest[]>([]);
+  const [prayerStatusFilter, setPrayerStatusFilter] = useState<"all" | AdminPrayerRequest["status"]>("all");
   const [prayersFeedback, setPrayersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingPrayers, setIsLoadingPrayers] = useState(false);
   const [updatingPrayerId, setUpdatingPrayerId] = useState<string | null>(null);
+  const [prayerPage, setPrayerPage] = useState(1);
+  const [prayersLoadedAt, setPrayersLoadedAt] = useState(0);
   const [users, setUsers] = useState<AdminUserRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [usersFeedback, setUsersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [usersLoadedAt, setUsersLoadedAt] = useState(0);
   const [isUploadingImage, setIsUploadingImage] = useState<"avatar" | "cover" | null>(null);
   const [partners, setPartners] = useState<PartnerLogoRecord[]>([]);
   const [partnerForm, setPartnerForm] = useState<PartnerLogoFormState>(emptyPartnerLogoForm);
@@ -228,6 +290,30 @@ export function App() {
     [filteredLawyers, lawyers, selectedLawyerId]
   );
 
+  const pagedLawyers = useMemo(
+    () => paginate(filteredLawyers, lawyerPage, LAWYERS_PAGE_SIZE),
+    [filteredLawyers, lawyerPage]
+  );
+
+  const filteredPrayerRequests = useMemo(
+    () =>
+      prayerRequests.filter((request) => {
+        return prayerStatusFilter === "all" || request.status === prayerStatusFilter;
+      }),
+    [prayerRequests, prayerStatusFilter]
+  );
+
+  const pagedPrayerRequests = useMemo(
+    () => paginate(filteredPrayerRequests, prayerPage, PRAYERS_PAGE_SIZE),
+    [filteredPrayerRequests, prayerPage]
+  );
+
+  const prayerStats = useMemo(() => {
+    const unread = prayerRequests.filter((request) => request.status === "received").length;
+    const read = prayerRequests.length - unread;
+    return { unread, read, total: prayerRequests.length };
+  }, [prayerRequests]);
+
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLowerCase();
     return users.filter((user) => {
@@ -242,6 +328,23 @@ export function App() {
     () => users.find((user) => user.id === selectedUserId) ?? filteredUsers[0] ?? null,
     [filteredUsers, users, selectedUserId]
   );
+
+  const pagedUsers = useMemo(
+    () => paginate(filteredUsers, userPage, USERS_PAGE_SIZE),
+    [filteredUsers, userPage]
+  );
+
+  useEffect(() => {
+    setLawyerPage(1);
+  }, [lawyerSearch, lawyerStatusFilter]);
+
+  useEffect(() => {
+    setPrayerPage(1);
+  }, [prayerStatusFilter]);
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch]);
 
   useEffect(() => {
     if (activeView === "lawyers" && session && lawyers.length === 0 && !isLoadingLawyers) {
@@ -261,9 +364,13 @@ export function App() {
     }
   }, [activeView, session]);
 
-  async function handleLoadLawyers() {
+  async function handleLoadLawyers(force = false) {
     if (!token) {
       setLawyersFeedback({ kind: "error", message: "Entre como admin antes de listar advogados." });
+      return;
+    }
+    if (!force && lawyers.length > 0 && Date.now() - lawyersLoadedAt < CACHE_TTL_MS) {
+      setLawyersFeedback({ kind: "success", message: "Listagem restaurada do cache da sessao." });
       return;
     }
 
@@ -272,6 +379,7 @@ export function App() {
     try {
       const response = await fetchLawyers(token);
       setLawyers(response.lawyers);
+      setLawyersLoadedAt(Date.now());
       setSelectedLawyerId((current) => current ?? response.lawyers[0]?.id ?? null);
       setLawyersFeedback({
         kind: response.lawyers.length ? "success" : "info",
@@ -287,9 +395,13 @@ export function App() {
     }
   }
 
-  async function handleLoadPrayerRequests() {
+  async function handleLoadPrayerRequests(force = false) {
     if (!token) {
       setPrayersFeedback({ kind: "error", message: "Entre como admin antes de listar pedidos." });
+      return;
+    }
+    if (!force && prayerRequests.length > 0 && Date.now() - prayersLoadedAt < CACHE_TTL_MS) {
+      setPrayersFeedback({ kind: "success", message: "Pedidos restaurados do cache da sessao." });
       return;
     }
 
@@ -298,6 +410,7 @@ export function App() {
     try {
       const response = await fetchPrayerRequests(token);
       setPrayerRequests(response.requests);
+      setPrayersLoadedAt(Date.now());
       setPrayersFeedback({
         kind: response.requests.length ? "success" : "info",
         message: response.requests.length
@@ -312,9 +425,13 @@ export function App() {
     }
   }
 
-  async function handleLoadUsers() {
+  async function handleLoadUsers(force = false) {
     if (!token) {
       setUsersFeedback({ kind: "error", message: "Entre como admin antes de listar usuarios." });
+      return;
+    }
+    if (!force && users.length > 0 && Date.now() - usersLoadedAt < CACHE_TTL_MS) {
+      setUsersFeedback({ kind: "success", message: "Usuarios restaurados do cache da sessao." });
       return;
     }
 
@@ -323,6 +440,7 @@ export function App() {
     try {
       const response = await fetchAdminUsers(token);
       setUsers(response.users);
+      setUsersLoadedAt(Date.now());
       setSelectedUserId((current) => current ?? response.users[0]?.id ?? null);
       setUsersFeedback({
         kind: response.users.length ? "success" : "info",
@@ -423,12 +541,26 @@ export function App() {
     { view: "operation", label: "Operacao" }
   ];
 
-  function updateForm(field: keyof LawyerFormState, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+  function updateForm(field: Exclude<keyof LawyerFormState, "secondaryAreaIds">, value: string) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "mainAreaId" ? { secondaryAreaIds: current.secondaryAreaIds.filter((areaId) => areaId !== value) } : {})
+    }));
     if (field === "officeCep") {
       setAddress(null);
       setCoordinates(null);
     }
+  }
+
+  function toggleSecondaryArea(areaId: string, checked: boolean) {
+    setForm((current) => {
+      if (areaId === current.mainAreaId) return current;
+      const next = checked
+        ? [...new Set([...current.secondaryAreaIds, areaId])]
+        : current.secondaryAreaIds.filter((currentAreaId) => currentAreaId !== areaId);
+      return { ...current, secondaryAreaIds: next };
+    });
   }
 
   function updatePartnerForm(field: keyof PartnerLogoFormState, value: string | boolean) {
@@ -523,6 +655,7 @@ export function App() {
           const exists = current.some((item) => item.id === response.lawyer.id);
           return exists ? current.map((item) => (item.id === response.lawyer.id ? response.lawyer : item)) : [response.lawyer, ...current];
         });
+        setLawyersLoadedAt(Date.now());
         setSelectedLawyerId(response.lawyer.id);
       }
       setEditingLawyerId(null);
@@ -530,7 +663,7 @@ export function App() {
       setAddress(null);
       setCoordinates(null);
       if (lawyers.length > 0 || activeView === "newLawyer") {
-        void handleLoadLawyers();
+        void handleLoadLawyers(true);
       }
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao salvar advogado.";
@@ -646,6 +779,7 @@ export function App() {
     try {
       const response = await updatePrayerRequestStatus(token, request.id, status);
       setPrayerRequests((current) => current.map((item) => (item.id === response.request.id ? response.request : item)));
+      setPrayersLoadedAt(Date.now());
       setPrayersFeedback({ kind: "success", message: status === "read" ? "Oracao marcada como lida." : "Oracao voltou para recebida." });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao atualizar oracao.";
@@ -666,6 +800,7 @@ export function App() {
     try {
       const response = await updateLawyerStatus(token, lawyer.id, status);
       setLawyers((current) => current.map((item) => (item.id === response.lawyer.id ? response.lawyer : item)));
+      setLawyersLoadedAt(Date.now());
       setSelectedLawyerId(response.lawyer.id);
       setLawyersFeedback({ kind: "success", message: "Status atualizado com regra de coordenada preservada." });
     } catch (error) {
@@ -687,6 +822,7 @@ export function App() {
     try {
       const response = await updateAdminUserBlocked(token, user.id, blocked);
       setUsers((current) => current.map((item) => (item.id === response.user.id ? response.user : item)));
+      setUsersLoadedAt(Date.now());
       setSelectedUserId(response.user.id);
       setUsersFeedback({ kind: "success", message: blocked ? "Usuario bloqueado." : "Usuario desbloqueado." });
     } catch (error) {
@@ -803,7 +939,7 @@ export function App() {
                   <h2>Gestao operacional</h2>
                 </div>
                 <div className="toolbar-actions">
-                  <button className="secondary-action" disabled={isLoadingLawyers} onClick={handleLoadLawyers} type="button">
+                  <button className="secondary-action" disabled={isLoadingLawyers} onClick={() => void handleLoadLawyers(true)} type="button">
                     {isLoadingLawyers ? "Atualizando" : "Atualizar"}
                   </button>
                   <button className="header-action" onClick={startNewLawyer} type="button">
@@ -845,7 +981,7 @@ export function App() {
                   <p className="empty-state">Nenhum advogado encontrado para os filtros atuais.</p>
                 ) : null}
                 {!isLoadingLawyers
-                  ? filteredLawyers.map((lawyer) => (
+                  ? pagedLawyers.items.map((lawyer) => (
                       <button
                         className={`lawyer-row ${selectedLawyer?.id === lawyer.id ? "selected" : ""}`}
                         key={lawyer.id}
@@ -854,6 +990,9 @@ export function App() {
                         role="listitem"
                       >
                         <span className={`status-dot ${lawyer.status}`} aria-hidden="true" />
+                        <span className="avatar-mini" aria-hidden="true">
+                          {lawyer.avatarUrl ? <img alt="" src={lawyer.avatarUrl} /> : initials(lawyer.name)}
+                        </span>
                         <span className="lawyer-main">
                           <strong>{lawyer.name}</strong>
                           <small>
@@ -868,6 +1007,13 @@ export function App() {
                     ))
                   : null}
               </div>
+              <Pagination
+                page={pagedLawyers.page}
+                totalItems={filteredLawyers.length}
+                totalPages={pagedLawyers.totalPages}
+                onNext={() => setLawyerPage((current) => Math.min(current + 1, pagedLawyers.totalPages))}
+                onPrevious={() => setLawyerPage((current) => Math.max(current - 1, 1))}
+              />
             </section>
 
             <aside className="panel detail-panel" aria-label="Detalhe seguro do advogado">
@@ -905,6 +1051,14 @@ export function App() {
                     <div>
                       <dt>Area principal</dt>
                       <dd>{areaById.get(selectedLawyer.mainAreaId) ?? selectedLawyer.mainAreaId}</dd>
+                    </div>
+                    <div>
+                      <dt>Especialidades secundarias</dt>
+                      <dd>
+                        {selectedLawyer.secondaryAreaIds
+                          .map((areaId) => areaById.get(areaId) ?? areaId)
+                          .join(", ") || "Nao informadas"}
+                      </dd>
                     </div>
                     <div>
                       <dt>Cidade/UF</dt>
@@ -1014,6 +1168,24 @@ export function App() {
                 </select>
               </label>
             </div>
+
+            <fieldset className="field wide specialty-field">
+              <legend>Especialidades secundarias</legend>
+              <div className="specialty-options">
+                {areas
+                  .filter((area) => area.id !== form.mainAreaId)
+                  .map((area) => (
+                    <label className="specialty-chip" key={area.id}>
+                      <input
+                        checked={form.secondaryAreaIds.includes(area.id)}
+                        onChange={(event) => toggleSecondaryArea(area.id, event.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>{area.name}</span>
+                    </label>
+                  ))}
+              </div>
+            </fieldset>
 
             <div className="visual-grid">
               <div className="media-field">
@@ -1170,32 +1342,60 @@ export function App() {
         </section> : null}
 
         {activeView === "prayers" ? (
-          <section className="panel table-panel" aria-label="Pedidos de oracao recebidos">
-            <div className="panel-heading">
+          <section className="prayers-workspace" aria-label="Pedidos de oracao recebidos">
+            <section className="panel prayer-hero">
               <div>
                 <p className="eyebrow">Oracao</p>
                 <h2>Pedidos recebidos</h2>
               </div>
-              <button className="secondary-action" disabled={isLoadingPrayers} onClick={handleLoadPrayerRequests} type="button">
-                {isLoadingPrayers ? "Atualizando" : "Atualizar"}
-              </button>
-            </div>
+              <div className="prayer-stats" aria-label="Resumo de oracoes">
+                <div>
+                  <strong>{prayerStats.unread}</strong>
+                  <span>Recebidas</span>
+                </div>
+                <div>
+                  <strong>{prayerStats.read}</strong>
+                  <span>Lidas</span>
+                </div>
+                <div>
+                  <strong>{prayerStats.total}</strong>
+                  <span>Total</span>
+                </div>
+              </div>
+              <div className="toolbar-actions">
+                {(["all", "received", "read"] as const).map((status) => (
+                  <button
+                    className={`filter-chip ${prayerStatusFilter === status ? "active" : ""}`}
+                    key={status}
+                    onClick={() => setPrayerStatusFilter(status)}
+                    type="button"
+                  >
+                    {status === "all" ? "Todas" : status === "received" ? "Recebidas" : "Lidas"}
+                  </button>
+                ))}
+                <button className="secondary-action" disabled={isLoadingPrayers} onClick={() => void handleLoadPrayerRequests(true)} type="button">
+                  {isLoadingPrayers ? "Atualizando" : "Atualizar"}
+                </button>
+              </div>
+            </section>
 
             {prayersFeedback.message ? <p className={`feedback ${prayersFeedback.kind}`}>{prayersFeedback.message}</p> : null}
 
             <div className="request-list" aria-busy={isLoadingPrayers}>
               {isLoadingPrayers ? <p className="empty-state">Carregando pedidos...</p> : null}
-              {!isLoadingPrayers && prayerRequests.length === 0 ? (
+              {!isLoadingPrayers && filteredPrayerRequests.length === 0 ? (
                 <p className="empty-state">Nenhum pedido de oracao recebido ainda.</p>
               ) : null}
               {!isLoadingPrayers
-                ? prayerRequests.map((request) => (
+                ? pagedPrayerRequests.items.map((request) => (
                     <article className={`request-item ${request.status === "read" ? "read" : ""}`} key={request.id}>
                       <div className="request-meta">
-                        <span className="status-pill">{request.status === "received" ? "Recebido" : "Lida"}</span>
+                        <span className={`status-pill ${request.status === "read" ? "read-pill" : ""}`}>
+                          {request.status === "received" ? "Recebido" : "Lida"}
+                        </span>
                         <time>{formatDateTime(request.createdAt)}</time>
                       </div>
-                      <p>{request.message}</p>
+                      <p className="prayer-message">{request.message}</p>
                       <div className="request-footer">
                         <small>
                           {request.anonymous || !request.client
@@ -1220,6 +1420,13 @@ export function App() {
                   ))
                 : null}
             </div>
+            <Pagination
+              page={pagedPrayerRequests.page}
+              totalItems={filteredPrayerRequests.length}
+              totalPages={pagedPrayerRequests.totalPages}
+              onNext={() => setPrayerPage((current) => Math.min(current + 1, pagedPrayerRequests.totalPages))}
+              onPrevious={() => setPrayerPage((current) => Math.max(current - 1, 1))}
+            />
           </section>
         ) : null}
 
@@ -1330,7 +1537,7 @@ export function App() {
                   <p className="eyebrow">Usuarios</p>
                   <h2>Cadastros do app</h2>
                 </div>
-                <button className="secondary-action" disabled={isLoadingUsers} onClick={handleLoadUsers} type="button">
+                <button className="secondary-action" disabled={isLoadingUsers} onClick={() => void handleLoadUsers(true)} type="button">
                   {isLoadingUsers ? "Atualizando" : "Atualizar"}
                 </button>
               </div>
@@ -1352,7 +1559,7 @@ export function App() {
                   <p className="empty-state">Nenhum usuario encontrado.</p>
                 ) : null}
                 {!isLoadingUsers
-                  ? filteredUsers.map((user) => (
+                  ? pagedUsers.items.map((user) => (
                       <button
                         className={`lawyer-row user-row ${selectedUser?.id === user.id ? "selected" : ""}`}
                         key={user.id}
@@ -1361,6 +1568,9 @@ export function App() {
                         role="listitem"
                       >
                         <span className={`status-dot ${user.blockedAt ? "rejected" : "approved"}`} aria-hidden="true" />
+                        <span className="avatar-mini" aria-hidden="true">
+                          {user.avatarUrl ? <img alt="" src={user.avatarUrl} /> : initials(user.name || user.email)}
+                        </span>
                         <span className="lawyer-main">
                           <strong>{user.name}</strong>
                           <small>{user.email}</small>
@@ -1371,6 +1581,13 @@ export function App() {
                     ))
                   : null}
               </div>
+              <Pagination
+                page={pagedUsers.page}
+                totalItems={filteredUsers.length}
+                totalPages={pagedUsers.totalPages}
+                onNext={() => setUserPage((current) => Math.min(current + 1, pagedUsers.totalPages))}
+                onPrevious={() => setUserPage((current) => Math.max(current - 1, 1))}
+              />
             </section>
 
             <aside className="panel detail-panel" aria-label="Detalhe do usuario">

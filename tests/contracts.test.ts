@@ -67,6 +67,7 @@ describe("admin contracts", () => {
       oabNumber: "123456",
       oabState: "sp",
       mainAreaId: "area-civil",
+      secondaryAreaIds: ["area-consumidor", "area-trabalhista"],
       officeCep: "01001-000",
       officeNumber: "100",
       avatarUrl: " https://cdn.example.test/avatar.jpg ",
@@ -87,7 +88,7 @@ describe("admin contracts", () => {
       oabNumber: "123456",
       oabState: "SP",
       mainAreaId: "area-civil",
-      secondaryAreaIds: [],
+      secondaryAreaIds: ["area-consumidor", "area-trabalhista"],
       officeCep: "01001-000",
       officeNumber: "100",
       avatarUrl: "https://cdn.example.test/avatar.jpg",
@@ -164,6 +165,44 @@ describe("admin contracts", () => {
       instagramUrl: "https://instagram.com/dramarina",
       status: "approved"
     });
+  });
+
+  it("sends secondary specialties when they change on an existing lawyer", () => {
+    const original = {
+      id: "lawyer-1",
+      profileId: "profile-1",
+      name: "Dra. Marina Costa",
+      email: "marina@example.com",
+      whatsapp: "11999999999",
+      oabNumber: "123456",
+      oabState: "SP",
+      mainAreaId: "civil",
+      secondaryAreaIds: ["consumidor"],
+      officeCep: "01001000",
+      officeNumber: "100",
+      status: "pending_review" as const,
+      createdAt: "2026-06-03T00:00:00.000Z",
+      updatedAt: "2026-06-03T00:00:00.000Z"
+    };
+
+    const payload = buildLawyerUpdatePayload(
+      {
+        ...emptyLawyerForm,
+        name: original.name,
+        email: original.email,
+        whatsapp: original.whatsapp,
+        oabNumber: original.oabNumber,
+        oabState: original.oabState,
+        mainAreaId: original.mainAreaId,
+        secondaryAreaIds: ["consumidor", "trabalhista"],
+        officeCep: "01001-000",
+        officeNumber: original.officeNumber,
+        status: original.status
+      },
+      original
+    );
+
+    expect(payload).toEqual({ secondaryAreaIds: ["consumidor", "trabalhista"] });
   });
 
   it("fetches the current admin user without exposing token in the response", async () => {

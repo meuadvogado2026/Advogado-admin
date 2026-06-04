@@ -97,6 +97,7 @@ export type LawyerFormState = {
   oabNumber: string;
   oabState: string;
   mainAreaId: string;
+  secondaryAreaIds: string[];
   officeCep: string;
   officeNumber: string;
   avatarUrl: string;
@@ -134,6 +135,7 @@ export const emptyLawyerForm: LawyerFormState = {
   oabNumber: "",
   oabState: "SP",
   mainAreaId: "",
+  secondaryAreaIds: [],
   officeCep: "",
   officeNumber: "",
   avatarUrl: "",
@@ -167,7 +169,7 @@ export function buildLawyerPayload(form: LawyerFormState) {
     oabNumber: form.oabNumber.trim(),
     oabState: form.oabState.trim().toUpperCase(),
     mainAreaId: form.mainAreaId,
-    secondaryAreaIds: [],
+    secondaryAreaIds: form.secondaryAreaIds.filter((areaId) => areaId && areaId !== form.mainAreaId),
     officeCep: form.officeCep.trim(),
     officeNumber: form.officeNumber.trim(),
     avatarUrl: optionalTrimmed(form.avatarUrl),
@@ -213,7 +215,12 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
     if (oabState && oabState !== original.oabState) payload.oabState = oabState;
     if (form.mainAreaId && form.mainAreaId !== original.mainAreaId) {
       payload.mainAreaId = form.mainAreaId;
-      payload.secondaryAreaIds = [];
+      payload.secondaryAreaIds = form.secondaryAreaIds.filter((areaId) => areaId && areaId !== form.mainAreaId);
+    } else if (
+      form.secondaryAreaIds.filter((areaId) => areaId && areaId !== form.mainAreaId).join("|") !==
+      original.secondaryAreaIds.filter((areaId) => areaId && areaId !== original.mainAreaId).join("|")
+    ) {
+      payload.secondaryAreaIds = form.secondaryAreaIds.filter((areaId) => areaId && areaId !== form.mainAreaId);
     }
     if (officeCep && normalizeCep(officeCep) !== normalizeCep(original.officeCep)) payload.officeCep = officeCep;
     if (officeNumber && officeNumber !== original.officeNumber) payload.officeNumber = officeNumber;
@@ -234,7 +241,7 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
   if (oabNumber && oabState) payload.oabState = oabState;
   if (form.mainAreaId) {
     payload.mainAreaId = form.mainAreaId;
-    payload.secondaryAreaIds = [];
+    payload.secondaryAreaIds = form.secondaryAreaIds.filter((areaId) => areaId && areaId !== form.mainAreaId);
   }
   if (officeCep) payload.officeCep = officeCep;
   if (officeNumber) payload.officeNumber = officeNumber;
@@ -262,6 +269,7 @@ export function lawyerToForm(lawyer: LawyerRecord): LawyerFormState {
     oabNumber: lawyer.oabNumber,
     oabState: lawyer.oabState,
     mainAreaId: lawyer.mainAreaId,
+    secondaryAreaIds: lawyer.secondaryAreaIds ?? [],
     officeCep: lawyer.officeCep,
     officeNumber: lawyer.officeNumber,
     avatarUrl: lawyer.avatarUrl ?? "",
