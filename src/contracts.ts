@@ -6,9 +6,13 @@ export const apiContracts = {
   adminLawyerById: "/v1/admin/lawyers/:id",
   adminGeocodeCep: "/v1/admin/geocode/cep",
   adminPrayerRequests: "/v1/admin/prayer-requests",
+  adminPrayerRequestById: "/v1/admin/prayer-requests/:id",
   adminUsers: "/v1/admin/users",
   adminUserById: "/v1/admin/users/:id",
-  adminLawyerMedia: "/v1/admin/lawyer-media"
+  adminLawyerMedia: "/v1/admin/lawyer-media",
+  adminPartnerLogos: "/v1/admin/partner-logos",
+  adminPartnerLogoMedia: "/v1/admin/partner-logo-media",
+  partnerLogos: "/v1/partner-logos"
 } as const;
 
 export const kpis = [

@@ -23,6 +23,9 @@ Cadastro deve aceitar:
 - upload autenticado de foto/capa via backend em `POST /v1/admin/lawyer-media`;
 - status/plano.
 
+Edicao usa o mesmo formulario e `PATCH /v1/admin/lawyers/:id`, sem acesso direto ao
+Supabase. Alterar CEP revalida cidade/UF e coordenada pelo backend.
+
 ## CEP
 
 - `POST /v1/admin/geocode/cep`
@@ -32,9 +35,14 @@ Retorna endereco e coordenadas ou erro validavel.
 ## Operacao
 
 - `GET /v1/admin/prayer-requests`
+- `PATCH /v1/admin/prayer-requests/:id`
 - `GET /v1/admin/users`
 - `PATCH /v1/admin/users/:id`
 - `POST /v1/admin/lawyer-media`
+- `GET /v1/admin/partner-logos`
+- `POST /v1/admin/partner-logo-media`
+- `POST /v1/admin/partner-logos`
+- `GET /v1/partner-logos`
 - `GET /v1/admin/urgent-calls`
 - `PATCH /v1/admin/urgent-calls/:id`
 - `GET /v1/admin/clients`
@@ -71,6 +79,7 @@ Spec 009 implementou gestao operacional local de advogados na UI:
 - Busca e filtro por status sao locais sobre a lista retornada.
 - O detalhe operacional nao exibe CEP completo nem coordenada exata; mostra apenas o estado `Coordenada validada`/`Coordenada pendente`.
 - `PATCH /v1/admin/lawyers/:id` atualiza status com payload minimo `{ "status": "..." }`.
+- `PATCH /v1/admin/lawyers/:id` tambem atualiza dados operacionais completos quando chamado pelo formulario de edicao.
 - A regra de aprovacao com coordenada valida permanece no backend.
 - `POST /v1/admin/lawyers` persiste as especialidades em `lawyer_specialties`; sem acesso direto do admin ao Supabase.
 
@@ -81,6 +90,14 @@ Spec 009 implementou gestao operacional local de advogados na UI:
 - `GET /v1/admin/prayer-requests` alimenta a view `Oracoes`, exibindo texto do pedido apenas para admin autenticado.
 - `GET /v1/admin/users` alimenta a view `Usuarios`, com busca local, detalhe de dados cadastrais e status de bloqueio.
 - `PATCH /v1/admin/users/:id` bloqueia/desbloqueia usuario pelo backend; a propria sessao admin nao pode ser bloqueada por esse fluxo.
+
+## Ciclo admin operacional - edicao, oracoes lidas e parceiros
+
+- A view `Advogados` tem acao `Editar advogado`, que carrega o formulario com o registro selecionado.
+- Edição de CEP dispara re-geocoding no backend e corrige a persistencia de `officeCity`/`officeState`.
+- A view `Oracoes` permite marcar pedido como `Lida` e reabrir para `Recebido`, com estado visual interativo e `readAt`.
+- A view `Parceiros` permite upload de logo JPG/PNG/WebP via backend, preview/renderizacao da imagem, URL manual HTTPS como fallback e cadastro de parceiro ativo.
+- As logos cadastradas ficam disponiveis por rota publica segura para uso futuro no rodape mobile do usuario e do advogado.
 
 ## Spec 006 - Login E Sessao Admin
 

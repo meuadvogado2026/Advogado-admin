@@ -467,6 +467,11 @@ textarea {
   padding: 14px;
 }
 
+.request-item.read {
+  background: #f4f7f2;
+  border-color: #cfe2d7;
+}
+
 .request-item p {
   line-height: 1.55;
   margin: 0;
@@ -477,6 +482,7 @@ textarea {
   color: #665f54;
 }
 
+.request-footer,
 .request-meta {
   align-items: center;
   display: flex;
@@ -484,8 +490,98 @@ textarea {
   gap: 12px;
 }
 
+.request-footer {
+  align-items: end;
+}
+
+.prayer-read-action {
+  background: #1f6f64;
+  min-width: 132px;
+}
+
 .user-row {
   grid-template-columns: 10px minmax(170px, 1fr) minmax(86px, 120px) 112px;
+}
+
+.partner-logo-preview {
+  align-items: center;
+  background: #fffefa;
+  border: 1px dashed #cfc6b6;
+  border-radius: 8px;
+  color: #665f54;
+  display: grid;
+  height: 150px;
+  justify-items: center;
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.partner-logo-preview img {
+  max-height: 120px;
+  max-width: min(320px, 90%);
+  object-fit: contain;
+}
+
+.partner-actions,
+.toggle-row {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.toggle-row {
+  color: #665f54;
+  font-weight: 800;
+  margin-top: 0;
+}
+
+.toggle-row input {
+  min-height: auto;
+  width: auto;
+}
+
+.partner-list {
+  display: grid;
+  gap: 12px;
+}
+
+.partner-item {
+  align-items: center;
+  background: #fffefa;
+  border: 1px solid #e7e0d2;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  min-height: 82px;
+  padding: 12px;
+}
+
+.partner-thumb {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e7e0d2;
+  border-radius: 8px;
+  display: grid;
+  height: 58px;
+  justify-items: center;
+  overflow: hidden;
+}
+
+.partner-thumb img {
+  max-height: 44px;
+  max-width: 78px;
+  object-fit: contain;
+}
+
+.partner-item div:last-child {
+  display: grid;
+  gap: 4px;
+}
+
+.partner-item small {
+  color: #665f54;
 }
 
 .empty-state {
@@ -567,6 +663,8 @@ dd {
   .address-row,
   .toolbar-actions,
   .filters-row,
+  .request-footer,
+  .partner-actions,
   .lawyer-row {
     display: grid;
     grid-template-columns: 1fr;

@@ -5,19 +5,28 @@ import {
   AdminUserRecord,
   CepAddress,
   Coordinates,
+  createPartnerLogo,
   createLawyer,
   emptyLawyerForm,
+  emptyPartnerLogoForm,
   fetchAdminUsers,
   fetchAreas,
   fetchLawyers,
+  fetchPartnerLogos,
   fetchPrayerRequests,
   geocodeCep,
+  lawyerToForm,
   LawyerFormState,
   LawyerRecord,
   LawyerStatus,
+  PartnerLogoFormState,
+  PartnerLogoRecord,
   updateAdminUserBlocked,
+  updateLawyer,
   updateLawyerStatus,
+  updatePrayerRequestStatus,
   uploadLawyerImage,
+  uploadPartnerLogo,
   LegalArea
 } from "./adminApi";
 import {
@@ -33,7 +42,7 @@ import "./styles/app.css";
 import logo from "./assets/logo-blue.png";
 
 type Feedback = { kind: "idle" | "success" | "error" | "info"; message: string };
-type AdminView = "dashboard" | "lawyers" | "newLawyer" | "prayers" | "users" | "operation";
+type AdminView = "dashboard" | "lawyers" | "newLawyer" | "prayers" | "users" | "partners" | "operation";
 
 function formatAddress(address: CepAddress) {
   const parts = [address.street, address.neighborhood, address.city, address.state].filter(Boolean);
@@ -106,9 +115,11 @@ export function App() {
   const [lawyersFeedback, setLawyersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingLawyers, setIsLoadingLawyers] = useState(false);
   const [isUpdatingLawyer, setIsUpdatingLawyer] = useState(false);
+  const [editingLawyerId, setEditingLawyerId] = useState<string | null>(null);
   const [prayerRequests, setPrayerRequests] = useState<AdminPrayerRequest[]>([]);
   const [prayersFeedback, setPrayersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingPrayers, setIsLoadingPrayers] = useState(false);
+  const [updatingPrayerId, setUpdatingPrayerId] = useState<string | null>(null);
   const [users, setUsers] = useState<AdminUserRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
@@ -116,6 +127,12 @@ export function App() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState<"avatar" | "cover" | null>(null);
+  const [partners, setPartners] = useState<PartnerLogoRecord[]>([]);
+  const [partnerForm, setPartnerForm] = useState<PartnerLogoFormState>(emptyPartnerLogoForm);
+  const [partnersFeedback, setPartnersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
+  const [isLoadingPartners, setIsLoadingPartners] = useState(false);
+  const [isSavingPartner, setIsSavingPartner] = useState(false);
+  const [isUploadingPartnerLogo, setIsUploadingPartnerLogo] = useState(false);
   const [form, setForm] = useState<LawyerFormState>(emptyLawyerForm);
   const [address, setAddress] = useState<CepAddress | null>(null);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
@@ -240,6 +257,9 @@ export function App() {
     if (activeView === "users" && session && users.length === 0 && !isLoadingUsers) {
       void handleLoadUsers();
     }
+    if (activeView === "partners" && session && partners.length === 0 && !isLoadingPartners) {
+      void handleLoadPartnerLogos();
+    }
   }, [activeView, session]);
 
   async function handleLoadLawyers() {
@@ -317,6 +337,31 @@ export function App() {
     }
   }
 
+  async function handleLoadPartnerLogos() {
+    if (!token) {
+      setPartnersFeedback({ kind: "error", message: "Entre como admin antes de listar parceiros." });
+      return;
+    }
+
+    setIsLoadingPartners(true);
+    setPartnersFeedback({ kind: "info", message: "Carregando logos de parceiros..." });
+    try {
+      const response = await fetchPartnerLogos(token);
+      setPartners(response.partners);
+      setPartnersFeedback({
+        kind: response.partners.length ? "success" : "info",
+        message: response.partners.length
+          ? `Parceiros carregados via ${response.persistence}.`
+          : "Nenhum parceiro cadastrado ainda."
+      });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao listar parceiros.";
+      setPartnersFeedback({ kind: "error", message });
+    } finally {
+      setIsLoadingPartners(false);
+    }
+  }
+
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
     setIsLoggingIn(true);
@@ -356,6 +401,8 @@ export function App() {
         "M12 21s-7-4.3-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.7-7 10-7 10Zm-1-16h2v3h-2V5Zm0-3h2v2h-2V2Z",
       users:
         "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c0-3 3.6-5 8-5s8 2 8 5v1H4v-1Zm15-8 3 3-3 3-1.4-1.4.6-.6H16v-2h2.2l-.6-.6L19 12Z",
+      partners:
+        "M4 5h16v10H4V5Zm2 2v8h12V7H6Zm1 10h10v2H7v-2Zm11.5-2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM8 9.5 10.2 12l2.1-2.6L16 14H6l2-4.5Z",
       operation:
         "M12 2 3 6v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V6l-9-4Zm0 3.2 6 2.7V12c0 3.8-2.5 7.2-6 8.4-3.5-1.2-6-4.6-6-8.4V7.9l6-2.7Z"
     };
@@ -373,6 +420,7 @@ export function App() {
     { view: "newLawyer", label: "Novo Advogado" },
     { view: "prayers", label: "Oracoes" },
     { view: "users", label: "Usuarios" },
+    { view: "partners", label: "Parceiros" },
     { view: "operation", label: "Operacao" }
   ];
 
@@ -382,6 +430,51 @@ export function App() {
       setAddress(null);
       setCoordinates(null);
     }
+  }
+
+  function updatePartnerForm(field: keyof PartnerLogoFormState, value: string | boolean) {
+    setPartnerForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function startNewLawyer() {
+    setEditingLawyerId(null);
+    setForm((current) => ({ ...emptyLawyerForm, mainAreaId: current.mainAreaId || areas[0]?.id || "" }));
+    setAddress(null);
+    setCoordinates(null);
+    setFeedback({ kind: "idle", message: "" });
+    setActiveView("newLawyer");
+  }
+
+  function startEditLawyer(lawyer: LawyerRecord) {
+    setEditingLawyerId(lawyer.id);
+    setSelectedLawyerId(lawyer.id);
+    setForm(lawyerToForm(lawyer));
+    setAddress(
+      lawyer.officeCity || lawyer.officeState
+        ? {
+            cep: lawyer.officeCep,
+            street: "",
+            neighborhood: "",
+            city: lawyer.officeCity ?? "",
+            state: lawyer.officeState ?? ""
+          }
+        : null
+    );
+    setCoordinates(
+      typeof lawyer.officeLat === "number" && typeof lawyer.officeLng === "number"
+        ? { lat: lawyer.officeLat, lng: lawyer.officeLng, provider: "stub", precision: "cep_centroid", confidence: "medium" }
+        : null
+    );
+    setFeedback({ kind: "info", message: "Edicao carregada. Alterar o CEP revalida a localizacao pelo backend." });
+    setActiveView("newLawyer");
+  }
+
+  function handleNavigate(view: AdminView) {
+    if (view === "newLawyer") {
+      startNewLawyer();
+      return;
+    }
+    setActiveView(view);
   }
 
   async function handleGeocode() {
@@ -416,11 +509,24 @@ export function App() {
     }
 
     setIsSaving(true);
-    setFeedback({ kind: "info", message: "Salvando advogado pelo backend..." });
+    setFeedback({ kind: "info", message: editingLawyerId ? "Atualizando advogado pelo backend..." : "Salvando advogado pelo backend..." });
     try {
-      await createLawyer(token, form);
-      setFeedback({ kind: "success", message: "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida." });
-      setForm((current) => ({ ...emptyLawyerForm, mainAreaId: current.mainAreaId }));
+      const response = editingLawyerId ? await updateLawyer(token, editingLawyerId, form) : await createLawyer(token, form);
+      setFeedback({
+        kind: "success",
+        message: editingLawyerId
+          ? "Advogado atualizado. CEP alterado revalida cidade, UF e coordenada."
+          : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
+      });
+      if ("lawyer" in response) {
+        setLawyers((current) => {
+          const exists = current.some((item) => item.id === response.lawyer.id);
+          return exists ? current.map((item) => (item.id === response.lawyer.id ? response.lawyer : item)) : [response.lawyer, ...current];
+        });
+        setSelectedLawyerId(response.lawyer.id);
+      }
+      setEditingLawyerId(null);
+      setForm((current) => ({ ...emptyLawyerForm, mainAreaId: current.mainAreaId || areas[0]?.id || "" }));
       setAddress(null);
       setCoordinates(null);
       if (lawyers.length > 0 || activeView === "newLawyer") {
@@ -466,6 +572,86 @@ export function App() {
       setFeedback({ kind: "error", message });
     } finally {
       setIsUploadingImage(null);
+    }
+  }
+
+  async function handlePartnerLogoUpload(file: File | null) {
+    if (!file) return;
+    if (!token) {
+      setPartnersFeedback({ kind: "error", message: "Entre como admin antes de enviar logo." });
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setPartnersFeedback({ kind: "error", message: "Use JPG, PNG ou WebP." });
+      return;
+    }
+    if (file.size > 2_000_000) {
+      setPartnersFeedback({ kind: "error", message: "Logo deve ter no maximo 2MB." });
+      return;
+    }
+
+    setIsUploadingPartnerLogo(true);
+    setPartnersFeedback({ kind: "info", message: "Enviando logo do parceiro..." });
+    try {
+      const base64Data = await fileToBase64(file);
+      const response = await uploadPartnerLogo(token, {
+        fileName: file.name,
+        mimeType: file.type,
+        base64Data
+      });
+      updatePartnerForm("logoUrl", response.image.url);
+      setPartnersFeedback({ kind: "success", message: "Logo enviada. Confira a renderizacao antes de salvar." });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao enviar logo.";
+      setPartnersFeedback({ kind: "error", message });
+    } finally {
+      setIsUploadingPartnerLogo(false);
+    }
+  }
+
+  async function handlePartnerSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!token) {
+      setPartnersFeedback({ kind: "error", message: "Entre como admin antes de salvar parceiro." });
+      return;
+    }
+    if (!partnerForm.name.trim() || !partnerForm.logoUrl.trim()) {
+      setPartnersFeedback({ kind: "error", message: "Informe nome e logo do parceiro antes de salvar." });
+      return;
+    }
+
+    setIsSavingPartner(true);
+    setPartnersFeedback({ kind: "info", message: "Salvando parceiro..." });
+    try {
+      const response = await createPartnerLogo(token, partnerForm);
+      setPartners((current) => [response.partner, ...current]);
+      setPartnerForm(emptyPartnerLogoForm);
+      setPartnersFeedback({ kind: "success", message: "Parceiro salvo com logo renderizada no painel." });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao salvar parceiro.";
+      setPartnersFeedback({ kind: "error", message });
+    } finally {
+      setIsSavingPartner(false);
+    }
+  }
+
+  async function handlePrayerStatusChange(request: AdminPrayerRequest, status: AdminPrayerRequest["status"]) {
+    if (!token) {
+      setPrayersFeedback({ kind: "error", message: "Entre como admin antes de atualizar a oracao." });
+      return;
+    }
+
+    setUpdatingPrayerId(request.id);
+    setPrayersFeedback({ kind: "info", message: status === "read" ? "Marcando oracao como lida..." : "Reabrindo leitura..." });
+    try {
+      const response = await updatePrayerRequestStatus(token, request.id, status);
+      setPrayerRequests((current) => current.map((item) => (item.id === response.request.id ? response.request : item)));
+      setPrayersFeedback({ kind: "success", message: status === "read" ? "Oracao marcada como lida." : "Oracao voltou para recebida." });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao atualizar oracao.";
+      setPrayersFeedback({ kind: "error", message });
+    } finally {
+      setUpdatingPrayerId(null);
     }
   }
 
@@ -523,7 +709,7 @@ export function App() {
             <button
               className={`nav-button ${activeView === item.view ? "active" : ""}`}
               key={item.view}
-              onClick={() => setActiveView(item.view)}
+              onClick={() => handleNavigate(item.view)}
               type="button"
             >
               <Icon name={item.view} />
@@ -581,7 +767,7 @@ export function App() {
             <p className="session-label">{session.user.email ?? "admin"} - role admin</p>
           </div>
           <div className="header-actions">
-            <button className="header-action" onClick={() => setActiveView("newLawyer")} type="button">
+            <button className="header-action" onClick={startNewLawyer} type="button">
               Novo advogado
             </button>
             <button className="secondary-action" onClick={handleLogout} type="button">
@@ -612,7 +798,7 @@ export function App() {
                   <button className="secondary-action" disabled={isLoadingLawyers} onClick={handleLoadLawyers} type="button">
                     {isLoadingLawyers ? "Atualizando" : "Atualizar"}
                   </button>
-                  <button className="header-action" onClick={() => setActiveView("newLawyer")} type="button">
+                  <button className="header-action" onClick={startNewLawyer} type="button">
                     Novo advogado
                   </button>
                 </div>
@@ -730,7 +916,13 @@ export function App() {
                         {[
                           selectedLawyer.avatarUrl ? "foto" : null,
                           selectedLawyer.coverUrl ? "capa" : null,
-                          selectedLawyer.miniBio || selectedLawyer.fullBio ? "bio" : null
+                          selectedLawyer.miniBio || selectedLawyer.fullBio ? "bio" : null,
+                          selectedLawyer.instagramUrl ||
+                          selectedLawyer.linkedinUrl ||
+                          selectedLawyer.facebookUrl ||
+                          selectedLawyer.websiteUrl
+                            ? "redes"
+                            : null
                         ]
                           .filter(Boolean)
                           .join(", ") || "Nao preenchidos"}
@@ -741,6 +933,10 @@ export function App() {
                       <dd>{formatDate(selectedLawyer.updatedAt)}</dd>
                     </div>
                   </dl>
+
+                  <button className="header-action" onClick={() => startEditLawyer(selectedLawyer)} type="button">
+                    Editar advogado
+                  </button>
                 </>
               ) : (
                 <p className="empty-state">Selecione um advogado para ver detalhes operacionais.</p>
@@ -753,8 +949,8 @@ export function App() {
           <form className="panel form-panel" onSubmit={handleSubmit}>
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Advogado</p>
-                <h2>Dados operacionais</h2>
+                <p className="eyebrow">{editingLawyerId ? "Editar advogado" : "Advogado"}</p>
+                <h2>{editingLawyerId ? "Atualizar dados operacionais" : "Dados operacionais"}</h2>
               </div>
               <select
                 aria-label="Status"
@@ -873,6 +1069,42 @@ export function App() {
                   onChange={(event) => updateForm("fullBio", event.target.value)}
                 />
               </label>
+
+              <label className="field">
+                <span>Instagram</span>
+                <input
+                  placeholder="https://instagram.com/..."
+                  value={form.instagramUrl}
+                  onChange={(event) => updateForm("instagramUrl", event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>LinkedIn</span>
+                <input
+                  placeholder="https://www.linkedin.com/in/..."
+                  value={form.linkedinUrl}
+                  onChange={(event) => updateForm("linkedinUrl", event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Facebook</span>
+                <input
+                  placeholder="https://www.facebook.com/..."
+                  value={form.facebookUrl}
+                  onChange={(event) => updateForm("facebookUrl", event.target.value)}
+                />
+              </label>
+
+              <label className="field">
+                <span>Site profissional</span>
+                <input
+                  placeholder="https://..."
+                  value={form.websiteUrl}
+                  onChange={(event) => updateForm("websiteUrl", event.target.value)}
+                />
+              </label>
             </div>
 
             <div className="address-row">
@@ -897,8 +1129,13 @@ export function App() {
             </div>
 
             <footer className="form-actions">
+              {editingLawyerId ? (
+                <button className="secondary-action" onClick={startNewLawyer} type="button">
+                  Cancelar edicao
+                </button>
+              ) : null}
               <button disabled={isSaving || !canSubmit} type="submit">
-                {isSaving ? "Salvando" : "Salvar advogado"}
+                {isSaving ? "Salvando" : editingLawyerId ? "Atualizar advogado" : "Salvar advogado"}
               </button>
             </footer>
           </form>
@@ -945,21 +1182,135 @@ export function App() {
               ) : null}
               {!isLoadingPrayers
                 ? prayerRequests.map((request) => (
-                    <article className="request-item" key={request.id}>
+                    <article className={`request-item ${request.status === "read" ? "read" : ""}`} key={request.id}>
                       <div className="request-meta">
-                        <span className="status-pill">{request.status === "received" ? "Recebido" : request.status}</span>
+                        <span className="status-pill">{request.status === "received" ? "Recebido" : "Lida"}</span>
                         <time>{formatDateTime(request.createdAt)}</time>
                       </div>
                       <p>{request.message}</p>
-                      <small>
-                        {request.anonymous || !request.client
-                          ? "Pedido anonimo"
-                          : `${request.client.name} - ${request.client.email}`}
-                      </small>
+                      <div className="request-footer">
+                        <small>
+                          {request.anonymous || !request.client
+                            ? "Pedido anonimo"
+                            : `${request.client.name} - ${request.client.email}`}
+                          {request.readAt ? ` - lida em ${formatDateTime(request.readAt)}` : ""}
+                        </small>
+                        <button
+                          className={request.status === "read" ? "secondary-action" : "prayer-read-action"}
+                          disabled={updatingPrayerId === request.id}
+                          onClick={() => void handlePrayerStatusChange(request, request.status === "read" ? "received" : "read")}
+                          type="button"
+                        >
+                          {updatingPrayerId === request.id
+                            ? "Atualizando"
+                            : request.status === "read"
+                              ? "Reabrir"
+                              : "Marcar lida"}
+                        </button>
+                      </div>
                     </article>
                   ))
                 : null}
             </div>
+          </section>
+        ) : null}
+
+        {activeView === "partners" ? (
+          <section className="workspace" aria-label="Logos de parceiros">
+            <form className="panel form-panel" onSubmit={handlePartnerSubmit}>
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Parceiros</p>
+                  <h2>Adicionar logo</h2>
+                </div>
+                <button className="secondary-action" disabled={isLoadingPartners} onClick={handleLoadPartnerLogos} type="button">
+                  {isLoadingPartners ? "Atualizando" : "Atualizar"}
+                </button>
+              </div>
+
+              <div className="partner-logo-preview">
+                {partnerForm.logoUrl ? <img alt={`Logo ${partnerForm.name || "do parceiro"}`} src={partnerForm.logoUrl} /> : <strong>Logo</strong>}
+              </div>
+
+              <div className="form-grid">
+                <label className="field">
+                  <span>Nome do parceiro</span>
+                  <input value={partnerForm.name} onChange={(event) => updatePartnerForm("name", event.target.value)} />
+                </label>
+
+                <label className="field">
+                  <span>Site</span>
+                  <input
+                    placeholder="https://..."
+                    value={partnerForm.websiteUrl}
+                    onChange={(event) => updatePartnerForm("websiteUrl", event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <label className="field wide">
+                <span>URL da logo</span>
+                <input
+                  placeholder="https://..."
+                  value={partnerForm.logoUrl}
+                  onChange={(event) => updatePartnerForm("logoUrl", event.target.value)}
+                />
+              </label>
+
+              <div className="partner-actions">
+                <label className="upload-action">
+                  {isUploadingPartnerLogo ? "Enviando" : "Upload logo"}
+                  <input
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={isUploadingPartnerLogo}
+                    onChange={(event) => void handlePartnerLogoUpload(event.currentTarget.files?.[0] ?? null)}
+                    type="file"
+                  />
+                </label>
+
+                <label className="toggle-row">
+                  <input
+                    checked={partnerForm.active}
+                    onChange={(event) => updatePartnerForm("active", event.target.checked)}
+                    type="checkbox"
+                  />
+                  Ativo
+                </label>
+              </div>
+
+              <footer className="form-actions">
+                <button disabled={isSavingPartner || !partnerForm.name || !partnerForm.logoUrl} type="submit">
+                  {isSavingPartner ? "Salvando" : "Salvar parceiro"}
+                </button>
+              </footer>
+
+              {partnersFeedback.message ? <p className={`feedback ${partnersFeedback.kind}`}>{partnersFeedback.message}</p> : null}
+            </form>
+
+            <aside className="panel result-panel">
+              <div>
+                <p className="eyebrow">Renderizacao</p>
+                <h2>Logos cadastradas</h2>
+              </div>
+
+              <div className="partner-list" aria-busy={isLoadingPartners}>
+                {isLoadingPartners ? <p className="empty-state">Carregando parceiros...</p> : null}
+                {!isLoadingPartners && partners.length === 0 ? <p className="empty-state">Nenhuma logo cadastrada.</p> : null}
+                {!isLoadingPartners
+                  ? partners.map((partner) => (
+                      <article className="partner-item" key={partner.id}>
+                        <div className="partner-thumb">
+                          <img alt={`Logo ${partner.name}`} src={partner.logoUrl} />
+                        </div>
+                        <div>
+                          <strong>{partner.name}</strong>
+                          <small>{partner.active ? "Ativo" : "Inativo"}</small>
+                        </div>
+                      </article>
+                    ))
+                  : null}
+              </div>
+            </aside>
           </section>
         ) : null}
 

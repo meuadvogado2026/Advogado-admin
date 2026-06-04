@@ -52,6 +52,10 @@ export type LawyerRecord = {
   coverUrl?: string | null;
   miniBio?: string | null;
   fullBio?: string | null;
+  instagramUrl?: string | null;
+  linkedinUrl?: string | null;
+  facebookUrl?: string | null;
+  websiteUrl?: string | null;
   status: LawyerStatus;
   createdAt: string;
   updatedAt: string;
@@ -61,8 +65,9 @@ export type AdminPrayerRequest = {
   id: string;
   message: string;
   anonymous: boolean;
-  status: "received";
+  status: "received" | "read";
   createdAt: string;
+  readAt?: string | null;
   client?: {
     id: string;
     name: string;
@@ -98,7 +103,28 @@ export type LawyerFormState = {
   coverUrl: string;
   miniBio: string;
   fullBio: string;
+  instagramUrl: string;
+  linkedinUrl: string;
+  facebookUrl: string;
+  websiteUrl: string;
   status: LawyerStatus;
+};
+
+export type PartnerLogoRecord = {
+  id: string;
+  name: string;
+  logoUrl: string;
+  websiteUrl?: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PartnerLogoFormState = {
+  name: string;
+  logoUrl: string;
+  websiteUrl: string;
+  active: boolean;
 };
 
 export const emptyLawyerForm: LawyerFormState = {
@@ -114,7 +140,18 @@ export const emptyLawyerForm: LawyerFormState = {
   coverUrl: "",
   miniBio: "",
   fullBio: "",
+  instagramUrl: "",
+  linkedinUrl: "",
+  facebookUrl: "",
+  websiteUrl: "",
   status: "pending_review"
+};
+
+export const emptyPartnerLogoForm: PartnerLogoFormState = {
+  name: "",
+  logoUrl: "",
+  websiteUrl: "",
+  active: true
 };
 
 function optionalTrimmed(value: string) {
@@ -137,6 +174,10 @@ export function buildLawyerPayload(form: LawyerFormState) {
     coverUrl: optionalTrimmed(form.coverUrl),
     miniBio: optionalTrimmed(form.miniBio),
     fullBio: optionalTrimmed(form.fullBio),
+    instagramUrl: optionalTrimmed(form.instagramUrl),
+    linkedinUrl: optionalTrimmed(form.linkedinUrl),
+    facebookUrl: optionalTrimmed(form.facebookUrl),
+    websiteUrl: optionalTrimmed(form.websiteUrl),
     status: form.status
   };
 }
@@ -145,8 +186,43 @@ export function buildLawyerStatusPatch(status: LawyerStatus) {
   return { status };
 }
 
+export function buildPrayerRequestStatusPatch(status: AdminPrayerRequest["status"]) {
+  return { status };
+}
+
 export function buildUserBlockedPatch(blocked: boolean) {
   return { blocked };
+}
+
+export function lawyerToForm(lawyer: LawyerRecord): LawyerFormState {
+  return {
+    name: lawyer.name,
+    email: lawyer.email,
+    whatsapp: lawyer.whatsapp,
+    oabNumber: lawyer.oabNumber,
+    oabState: lawyer.oabState,
+    mainAreaId: lawyer.mainAreaId,
+    officeCep: lawyer.officeCep,
+    officeNumber: lawyer.officeNumber,
+    avatarUrl: lawyer.avatarUrl ?? "",
+    coverUrl: lawyer.coverUrl ?? "",
+    miniBio: lawyer.miniBio ?? "",
+    fullBio: lawyer.fullBio ?? "",
+    instagramUrl: lawyer.instagramUrl ?? "",
+    linkedinUrl: lawyer.linkedinUrl ?? "",
+    facebookUrl: lawyer.facebookUrl ?? "",
+    websiteUrl: lawyer.websiteUrl ?? "",
+    status: lawyer.status
+  };
+}
+
+export function buildPartnerLogoPayload(form: PartnerLogoFormState) {
+  return {
+    name: form.name.trim(),
+    logoUrl: form.logoUrl.trim(),
+    websiteUrl: optionalTrimmed(form.websiteUrl),
+    active: form.active
+  };
 }
 
 export class AdminApiError extends Error {
@@ -194,13 +270,25 @@ export async function geocodeCep(token: string, cep: string): Promise<GeocodeCep
   return parseJson<GeocodeCepResult>(response);
 }
 
-export async function createLawyer(token: string, form: LawyerFormState) {
+export async function createLawyer(token: string, form: LawyerFormState): Promise<{ lawyer: LawyerRecord }> {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminLawyers}`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(buildLawyerPayload(form))
   });
-  return parseJson(response);
+  return parseJson<{ lawyer: LawyerRecord }>(response);
+}
+
+export async function updateLawyer(token: string, lawyerId: string, form: LawyerFormState) {
+  const response = await fetch(
+    `${API_BASE_URL}${apiContracts.adminLawyerById.replace(":id", encodeURIComponent(lawyerId))}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify(buildLawyerPayload(form))
+    }
+  );
+  return parseJson<{ lawyer: LawyerRecord }>(response);
 }
 
 export async function fetchLawyers(token: string): Promise<{ lawyers: LawyerRecord[]; persistence: string }> {
@@ -241,6 +329,18 @@ export async function fetchPrayerRequests(token: string): Promise<{ requests: Ad
   return parseJson<{ requests: AdminPrayerRequest[]; persistence: string }>(response);
 }
 
+export async function updatePrayerRequestStatus(token: string, requestId: string, status: AdminPrayerRequest["status"]) {
+  const response = await fetch(
+    `${API_BASE_URL}${apiContracts.adminPrayerRequestById.replace(":id", encodeURIComponent(requestId))}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify(buildPrayerRequestStatusPatch(status))
+    }
+  );
+  return parseJson<{ request: AdminPrayerRequest }>(response);
+}
+
 export async function fetchAdminUsers(token: string): Promise<{ users: AdminUserRecord[]; persistence: string }> {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminUsers}`, {
     headers: authHeaders(token)
@@ -255,4 +355,32 @@ export async function updateAdminUserBlocked(token: string, userId: string, bloc
     body: JSON.stringify(buildUserBlockedPatch(blocked))
   });
   return parseJson<{ user: AdminUserRecord }>(response);
+}
+
+export async function fetchPartnerLogos(token: string): Promise<{ partners: PartnerLogoRecord[]; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPartnerLogos}`, {
+    headers: authHeaders(token)
+  });
+  return parseJson<{ partners: PartnerLogoRecord[]; persistence: string }>(response);
+}
+
+export async function createPartnerLogo(token: string, form: PartnerLogoFormState) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPartnerLogos}`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(buildPartnerLogoPayload(form))
+  });
+  return parseJson<{ partner: PartnerLogoRecord; persistence: string }>(response);
+}
+
+export async function uploadPartnerLogo(
+  token: string,
+  input: { fileName: string; mimeType: string; base64Data: string }
+) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPartnerLogoMedia}`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ kind: "partnerLogo", ...input })
+  });
+  return parseJson<{ image: { url: string; path: string; contentType: string }; persistence: string }>(response);
 }

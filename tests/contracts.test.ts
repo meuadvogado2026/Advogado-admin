@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   AdminApiError,
+  buildPartnerLogoPayload,
   buildLawyerPayload,
+  buildPrayerRequestStatusPatch,
   buildLawyerStatusPatch,
   buildUserBlockedPatch,
+  createPartnerLogo,
   emptyLawyerForm,
+  emptyPartnerLogoForm,
   fetchAdminUsers,
   fetchLawyers,
+  fetchPartnerLogos,
   fetchPrayerRequests,
+  updatePrayerRequestStatus,
   updateAdminUserBlocked,
   uploadLawyerImage,
+  uploadPartnerLogo,
   updateLawyerStatus
 } from "../src/adminApi";
 import { fetchCurrentUser } from "../src/authApi";
@@ -39,10 +46,14 @@ describe("admin contracts", () => {
 
   it("points operational admin views to backend resources", () => {
     expect(apiContracts.adminPrayerRequests).toBe("/v1/admin/prayer-requests");
+    expect(apiContracts.adminPrayerRequestById).toBe("/v1/admin/prayer-requests/:id");
     expect(apiContracts.adminUsers).toBe("/v1/admin/users");
     expect(apiContracts.adminUserById).toBe("/v1/admin/users/:id");
     expect(apiContracts.adminLawyerMedia).toBe("/v1/admin/lawyer-media");
+    expect(apiContracts.adminPartnerLogos).toBe("/v1/admin/partner-logos");
+    expect(apiContracts.adminPartnerLogoMedia).toBe("/v1/admin/partner-logo-media");
     expect(buildUserBlockedPatch(true)).toEqual({ blocked: true });
+    expect(buildPrayerRequestStatusPatch("read")).toEqual({ status: "read" });
   });
 
   it("builds the backend lawyer payload with normalized OAB state", () => {
@@ -60,6 +71,10 @@ describe("admin contracts", () => {
       coverUrl: "",
       miniBio: " Atendimento civil ",
       fullBio: "",
+      instagramUrl: " https://instagram.com/dramarina ",
+      linkedinUrl: "",
+      facebookUrl: "",
+      websiteUrl: " https://marina.example.test ",
       status: "approved"
     });
 
@@ -77,6 +92,10 @@ describe("admin contracts", () => {
       coverUrl: null,
       miniBio: "Atendimento civil",
       fullBio: null,
+      instagramUrl: "https://instagram.com/dramarina",
+      linkedinUrl: null,
+      facebookUrl: null,
+      websiteUrl: "https://marina.example.test",
       status: "approved"
     });
   });
@@ -259,6 +278,122 @@ describe("admin contracts", () => {
           base64Data: "ZmFrZQ=="
         })
       ).resolves.toMatchObject({ image: { url: "https://storage.example.test/lawyers/avatar/1.png" } });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("updates prayer request status through backend boundary", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toContain("/v1/admin/prayer-requests/prayer-1");
+      expect(init?.method).toBe("PATCH");
+      expect(init?.body).toBe(JSON.stringify({ status: "read" }));
+      return new Response(
+        JSON.stringify({
+          request: {
+            id: "prayer-1",
+            message: "Pedido com tamanho suficiente para teste.",
+            anonymous: true,
+            status: "read",
+            createdAt: "2026-06-03T00:00:00.000Z",
+            readAt: "2026-06-04T00:00:00.000Z"
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    try {
+      await expect(updatePrayerRequestStatus("redacted-admin-token", "prayer-1", "read")).resolves.toMatchObject({
+        request: { id: "prayer-1", status: "read" }
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("builds and persists partner logo payloads through backend boundaries", async () => {
+    expect(
+      buildPartnerLogoPayload({
+        ...emptyPartnerLogoForm,
+        name: " Parceiro ",
+        logoUrl: " https://cdn.example.test/logo.png ",
+        websiteUrl: "",
+        active: true
+      })
+    ).toEqual({
+      name: "Parceiro",
+      logoUrl: "https://cdn.example.test/logo.png",
+      websiteUrl: null,
+      active: true
+    });
+
+    const originalFetch = globalThis.fetch;
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(`${init?.method ?? "GET"} ${String(input)}`);
+      if (String(input).includes("/v1/admin/partner-logo-media")) {
+        expect(init?.method).toBe("POST");
+        expect(init?.body).toBe(
+          JSON.stringify({ kind: "partnerLogo", fileName: "logo.png", mimeType: "image/png", base64Data: "ZmFrZQ==" })
+        );
+        return new Response(
+          JSON.stringify({
+            image: { url: "https://storage.example.test/partners/logos/1.png", path: "partners/logos/1.png", contentType: "image/png" },
+            persistence: "memory"
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if (init?.method === "POST") {
+        expect(init.body).toBe(
+          JSON.stringify({
+            name: "Parceiro",
+            logoUrl: "https://storage.example.test/partners/logos/1.png",
+            websiteUrl: null,
+            active: true
+          })
+        );
+        return new Response(
+          JSON.stringify({
+            partner: {
+              id: "partner-1",
+              name: "Parceiro",
+              logoUrl: "https://storage.example.test/partners/logos/1.png",
+              active: true,
+              createdAt: "2026-06-03T00:00:00.000Z",
+              updatedAt: "2026-06-03T00:00:00.000Z"
+            },
+            persistence: "memory"
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ partners: [], persistence: "memory" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }) as typeof fetch;
+
+    try {
+      await expect(fetchPartnerLogos("redacted-admin-token")).resolves.toEqual({ partners: [], persistence: "memory" });
+      await expect(
+        uploadPartnerLogo("redacted-admin-token", {
+          fileName: "logo.png",
+          mimeType: "image/png",
+          base64Data: "ZmFrZQ=="
+        })
+      ).resolves.toMatchObject({ image: { url: "https://storage.example.test/partners/logos/1.png" } });
+      await expect(
+        createPartnerLogo("redacted-admin-token", {
+          name: "Parceiro",
+          logoUrl: "https://storage.example.test/partners/logos/1.png",
+          websiteUrl: "",
+          active: true
+        })
+      ).resolves.toMatchObject({ partner: { id: "partner-1", active: true } });
+      expect(calls[0]).toContain("/v1/admin/partner-logos");
     } finally {
       globalThis.fetch = originalFetch;
     }
