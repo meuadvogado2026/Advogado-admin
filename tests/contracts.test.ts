@@ -3,6 +3,7 @@ import {
   AdminApiError,
   buildPartnerLogoPayload,
   buildLawyerPayload,
+  buildLawyerUpdatePayload,
   buildPrayerRequestStatusPatch,
   buildLawyerStatusPatch,
   buildUserBlockedPatch,
@@ -15,6 +16,7 @@ import {
   fetchPrayerRequests,
   updatePrayerRequestStatus,
   updateAdminUserBlocked,
+  updateLawyer,
   uploadLawyerImage,
   uploadPartnerLogo,
   updateLawyerStatus
@@ -96,6 +98,70 @@ describe("admin contracts", () => {
       linkedinUrl: null,
       facebookUrl: null,
       websiteUrl: "https://marina.example.test",
+      status: "approved"
+    });
+  });
+
+  it("builds partial lawyer update payloads so status and social links do not require a full legacy record", () => {
+    const payload = buildLawyerUpdatePayload({
+      ...emptyLawyerForm,
+      instagramUrl: " https://instagram.com/dramarina ",
+      linkedinUrl: " https://www.linkedin.com/in/dramarina ",
+      status: "suspended"
+    });
+
+    expect(payload).toEqual({
+      avatarUrl: null,
+      coverUrl: null,
+      miniBio: null,
+      fullBio: null,
+      instagramUrl: "https://instagram.com/dramarina",
+      linkedinUrl: "https://www.linkedin.com/in/dramarina",
+      facebookUrl: null,
+      websiteUrl: null,
+      status: "suspended"
+    });
+    expect(payload).not.toHaveProperty("email");
+    expect(payload).not.toHaveProperty("officeCep");
+    expect(payload).not.toHaveProperty("mainAreaId");
+  });
+
+  it("omits unchanged operational fields when editing an existing lawyer", () => {
+    const original = {
+      id: "lawyer-1",
+      profileId: "profile-1",
+      name: "Dra. Marina Costa",
+      email: "marina@example.com",
+      whatsapp: "11999999999",
+      oabNumber: "123456",
+      oabState: "SP",
+      mainAreaId: "area-civil",
+      secondaryAreaIds: [],
+      officeCep: "01001000",
+      officeNumber: "100",
+      status: "pending_review" as const,
+      createdAt: "2026-06-03T00:00:00.000Z",
+      updatedAt: "2026-06-03T00:00:00.000Z"
+    };
+    const payload = buildLawyerUpdatePayload(
+      {
+        ...emptyLawyerForm,
+        name: original.name,
+        email: original.email,
+        whatsapp: original.whatsapp,
+        oabNumber: original.oabNumber,
+        oabState: original.oabState,
+        mainAreaId: original.mainAreaId,
+        officeCep: "01001-000",
+        officeNumber: original.officeNumber,
+        instagramUrl: "https://instagram.com/dramarina",
+        status: "approved"
+      },
+      original
+    );
+
+    expect(payload).toEqual({
+      instagramUrl: "https://instagram.com/dramarina",
       status: "approved"
     });
   });
@@ -188,6 +254,51 @@ describe("admin contracts", () => {
     try {
       await expect(updateLawyerStatus("redacted-admin-token", "lawyer-1", "suspended")).resolves.toMatchObject({
         lawyer: { id: "lawyer-1", status: "suspended" }
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("updates lawyer profile through PATCH with a partial payload", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toContain("/v1/admin/lawyers/lawyer-1");
+      expect(init?.method).toBe("PATCH");
+      expect(init?.body).toBe(
+        JSON.stringify({
+          avatarUrl: null,
+          coverUrl: null,
+          miniBio: null,
+          fullBio: null,
+          instagramUrl: "https://instagram.com/drateste",
+          linkedinUrl: null,
+          facebookUrl: null,
+          websiteUrl: null,
+          status: "pending_review"
+        })
+      );
+      return new Response(
+        JSON.stringify({
+          lawyer: {
+            id: "lawyer-1",
+            instagramUrl: "https://instagram.com/drateste",
+            status: "pending_review"
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    try {
+      await expect(
+        updateLawyer("redacted-admin-token", "lawyer-1", {
+          ...emptyLawyerForm,
+          instagramUrl: "https://instagram.com/drateste",
+          status: "pending_review"
+        })
+      ).resolves.toMatchObject({
+        lawyer: { id: "lawyer-1", instagramUrl: "https://instagram.com/drateste", status: "pending_review" }
       });
     } finally {
       globalThis.fetch = originalFetch;

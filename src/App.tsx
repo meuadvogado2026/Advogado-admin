@@ -193,21 +193,20 @@ export function App() {
     };
   }, []);
 
-  const canSubmit = useMemo(
-    () =>
-      Boolean(
-        session &&
-          form.name &&
-          form.email &&
-          form.whatsapp &&
-          form.oabNumber &&
-          form.oabState &&
-          form.mainAreaId &&
-          form.officeCep &&
-          form.officeNumber
-      ),
-    [form, session]
-  );
+  const canSubmit = useMemo(() => {
+    if (!session) return false;
+    if (editingLawyerId) return true;
+    return Boolean(
+      form.name &&
+        form.email &&
+        form.whatsapp &&
+        form.oabNumber &&
+        form.oabState &&
+        form.mainAreaId &&
+        form.officeCep &&
+        form.officeNumber
+    );
+  }, [editingLawyerId, form, session]);
 
   const areaById = useMemo(() => new Map(areas.map((area) => [area.id, area.name])), [areas]);
 
@@ -511,11 +510,12 @@ export function App() {
     setIsSaving(true);
     setFeedback({ kind: "info", message: editingLawyerId ? "Atualizando advogado pelo backend..." : "Salvando advogado pelo backend..." });
     try {
-      const response = editingLawyerId ? await updateLawyer(token, editingLawyerId, form) : await createLawyer(token, form);
+      const originalLawyer = editingLawyerId ? lawyers.find((lawyer) => lawyer.id === editingLawyerId) : undefined;
+      const response = editingLawyerId ? await updateLawyer(token, editingLawyerId, form, originalLawyer) : await createLawyer(token, form);
       setFeedback({
         kind: "success",
         message: editingLawyerId
-          ? "Advogado atualizado. CEP alterado revalida cidade, UF e coordenada."
+          ? "Advogado atualizado."
           : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
       });
       if ("lawyer" in response) {

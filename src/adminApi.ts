@@ -182,6 +182,66 @@ export function buildLawyerPayload(form: LawyerFormState) {
   };
 }
 
+const normalizeCep = (value: string) => value.replace(/\D/g, "");
+
+export function buildLawyerUpdatePayload(form: LawyerFormState, original?: LawyerRecord) {
+  const payload: Record<string, unknown> = {};
+
+  const name = form.name.trim();
+  const email = form.email.trim();
+  const whatsapp = form.whatsapp.trim();
+  const oabNumber = form.oabNumber.trim();
+  const oabState = form.oabState.trim().toUpperCase();
+  const officeCep = form.officeCep.trim();
+  const officeNumber = form.officeNumber.trim();
+  const optionalFields = {
+    avatarUrl: optionalTrimmed(form.avatarUrl),
+    coverUrl: optionalTrimmed(form.coverUrl),
+    miniBio: optionalTrimmed(form.miniBio),
+    fullBio: optionalTrimmed(form.fullBio),
+    instagramUrl: optionalTrimmed(form.instagramUrl),
+    linkedinUrl: optionalTrimmed(form.linkedinUrl),
+    facebookUrl: optionalTrimmed(form.facebookUrl),
+    websiteUrl: optionalTrimmed(form.websiteUrl)
+  };
+
+  if (original) {
+    if (name && name !== original.name) payload.name = name;
+    if (email && email !== original.email) payload.email = email;
+    if (whatsapp && whatsapp !== original.whatsapp) payload.whatsapp = whatsapp;
+    if (oabNumber && oabNumber !== original.oabNumber) payload.oabNumber = oabNumber;
+    if (oabState && oabState !== original.oabState) payload.oabState = oabState;
+    if (form.mainAreaId && form.mainAreaId !== original.mainAreaId) {
+      payload.mainAreaId = form.mainAreaId;
+      payload.secondaryAreaIds = [];
+    }
+    if (officeCep && normalizeCep(officeCep) !== normalizeCep(original.officeCep)) payload.officeCep = officeCep;
+    if (officeNumber && officeNumber !== original.officeNumber) payload.officeNumber = officeNumber;
+    for (const [key, value] of Object.entries(optionalFields)) {
+      const originalValue = original[key as keyof typeof optionalFields] ?? null;
+      if (value !== originalValue) payload[key] = value;
+    }
+    if (form.status !== original.status) payload.status = form.status;
+    return payload;
+  }
+
+  Object.assign(payload, optionalFields, { status: form.status });
+
+  if (name) payload.name = name;
+  if (email) payload.email = email;
+  if (whatsapp) payload.whatsapp = whatsapp;
+  if (oabNumber) payload.oabNumber = oabNumber;
+  if (oabNumber && oabState) payload.oabState = oabState;
+  if (form.mainAreaId) {
+    payload.mainAreaId = form.mainAreaId;
+    payload.secondaryAreaIds = [];
+  }
+  if (officeCep) payload.officeCep = officeCep;
+  if (officeNumber) payload.officeNumber = officeNumber;
+
+  return payload;
+}
+
 export function buildLawyerStatusPatch(status: LawyerStatus) {
   return { status };
 }
@@ -279,13 +339,13 @@ export async function createLawyer(token: string, form: LawyerFormState): Promis
   return parseJson<{ lawyer: LawyerRecord }>(response);
 }
 
-export async function updateLawyer(token: string, lawyerId: string, form: LawyerFormState) {
+export async function updateLawyer(token: string, lawyerId: string, form: LawyerFormState, original?: LawyerRecord) {
   const response = await fetch(
     `${API_BASE_URL}${apiContracts.adminLawyerById.replace(":id", encodeURIComponent(lawyerId))}`,
     {
       method: "PATCH",
       headers: authHeaders(token),
-      body: JSON.stringify(buildLawyerPayload(form))
+      body: JSON.stringify(buildLawyerUpdatePayload(form, original))
     }
   );
   return parseJson<{ lawyer: LawyerRecord }>(response);
