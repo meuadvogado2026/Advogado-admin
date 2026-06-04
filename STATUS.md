@@ -1,8 +1,8 @@
 # Admin Status - Meu Advogado 2.0
 
 **Ultima atualizacao:** 2026-06-04
-**Fase:** ADMIN MVP / MIGRATION 0004 APLICADA
-**Veredito:** MIGRATION_0004_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_LOCAL_OK
+**Fase:** ADMIN MVP / PRODUCAO VALIDADA
+**Veredito:** ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
 
 ## Concluido
 
@@ -44,6 +44,9 @@
 - [x] View `Oracoes` criada para carregar pedidos recebidos via `GET /v1/admin/prayer-requests`.
 - [x] View `Usuarios` criada para listar usuarios cadastrados, visualizar dados operacionais e bloquear/desbloquear via `PATCH /v1/admin/users/:id`.
 - [x] Gates locais do ciclo ampliado: admin `npm run typecheck`, `npm run test`, `npm run build`, `npm run harness` exit 0; Browser local em `http://localhost:5176/login` confirmou login, sidebar com `Oracoes`/`Usuarios` e console sem erros.
+- [x] Ciclo ampliado publicado no Vercel pelo commit admin `783e76e`, junto do backend Railway `a0067c4`, apos migration `0004` aplicada no Supabase aprovado.
+- [x] Smoke publico producao: `/login` HTTP `200`, bundle novo sem `localhost`, sem token manual, endpoints admin novos sem token retornando `401` no backend e CORS `204` para a origem Vercel.
+- [x] Smoke autenticado assistido producao: painel admin abriu, advogados listaram, status persistiu apos recarga, upload de imagem pequena funcionou, views `Oracoes` e `Usuarios` abriram e bloqueio/desbloqueio de usuario descartavel seguro passou com limpeza dos dados de teste.
 
 ## Em Andamento
 
@@ -59,12 +62,10 @@
 - Nenhum bloqueio aberto para a spec 006 local. Para operar contra producao/Railway, repetir smoke proporcional no ambiente publicado.
 - Admin Vercel publicado esta validado para o fluxo operacional principal. Negativo nao-admin publicado segue opcional/pendente ate haver credencial segura desse perfil no momento.
 - Backend Railway passou a retornar `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app` apos o commit backend `844c048`; o browser carrega `/v1/areas` com `200` e sem falha.
-- Spec 008 Parte 1 foi validada localmente; para operar em producao, ainda exige commit/push/deploy Vercel e smoke publicado proporcional.
-- Spec 009 esta validada com smoke autenticado local. Antes de operar em producao, publicar admin/backend e repetir smoke proporcional no Vercel/Railway.
-- O ciclo ampliado depende do backend novo e da migration `0004_admin_users_blocking.sql` aplicada no Supabase antes de operar bloqueio de usuarios em producao.
-- Migration `0004_admin_users_blocking.sql` aplicada manualmente pelo usuario no Supabase SQL Editor aprovado; verificacao REST redigida confirmou `profiles.blocked_at`.
+- Admin operacional ampliado esta publicado e validado em producao. Migration `0004_admin_users_blocking.sql` aplicada manualmente pelo usuario no Supabase SQL Editor aprovado; verificacao REST redigida confirmou `profiles.blocked_at`.
+- Negativo nao-admin publicado segue opcional/pendente ate haver credencial segura desse perfil no momento.
 - Proximos ciclos devem ser iniciados pela raiz do projeto para carregar a governanca central `.codex/` e specs em `.codex/specs/`.
 
 ## Proximo Passo
 
-Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_LOCAL_OK` e a migration `0004` esta aplicada. Proximo gate: publicar admin/backend e repetir smoke proporcional no Vercel/Railway sem registrar PII sensivel.
+Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK`. Proximos ciclos devem focar novas demandas operacionais ou gates de release mobile, mantendo as mesmas regras de nao registrar PII sensivel.
