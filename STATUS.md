@@ -2,7 +2,7 @@
 
 **Ultima atualizacao:** 2026-06-04
 **Fase:** ADMIN MVP / PRODUCAO VALIDADA
-**Veredito:** PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
+**Veredito:** ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK / PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
 
 ## Concluido
 
@@ -49,6 +49,7 @@
 - [x] Smoke autenticado assistido producao: painel admin abriu, advogados listaram, status persistiu apos recarga, upload de imagem pequena funcionou, views `Oracoes` e `Usuarios` abriram e bloqueio/desbloqueio de usuario descartavel seguro passou com limpeza dos dados de teste.
 - [x] Melhorias publicadas em 2026-06-04 pelo commit `bf93a39`: view `Advogados` ganhou acao de editar advogado usando `PATCH /v1/admin/lawyers/:id`; view `Oracoes` marca/reabre leitura com estado visual; view `Parceiros` permite upload, preview e cadastro de logos. Admin `npm run harness` exit 0, Browser local confirmou `/login` e smoke publico basico `/login` retornou 200.
 - [x] Formulario admin de advogado ganhou campos opcionais HTTPS para Instagram, LinkedIn, Facebook e site profissional, enviados ao backend junto dos demais dados operacionais. Publicacao social fechada em 2026-06-04 com Vercel `/login` 200 e bundle sem `localhost`; backend/mobile publicados e validados.
+- [x] Bugfix publicado no commit `801cdc1`: edicao de advogado agora envia PATCH parcial comparando contra o registro original, permitindo salvar status/redes sociais sem depender de cadastro completo legado e sem reconsultar CEP quando o CEP nao mudou. Admin `npm run harness` exit 0 e Vercel `/login` 200 com bundle novo sem `localhost`.
 
 ## Em Andamento
 
@@ -72,4 +73,4 @@
 
 ## Proximo Passo
 
-Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. A publicacao social do perfil do advogado esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`; migration `0005` aplicada e `prod:smoke` backend OK.
+Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. Edicao de advogado esta `ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK`; perfil social esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`.
