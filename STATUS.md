@@ -1,8 +1,8 @@
 # Admin Status - Meu Advogado 2.0
 
-**Ultima atualizacao:** 2026-06-03
-**Fase:** ADMIN MVP / SPEC 009 GESTAO OPERACIONAL VALIDADA
-**Veredito:** ADMIN_GESTAO_ADVOGADOS_SMOKE_AUTH_OK
+**Ultima atualizacao:** 2026-06-04
+**Fase:** ADMIN MVP / MIGRATION 0004 APLICADA
+**Veredito:** MIGRATION_0004_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_LOCAL_OK
 
 ## Concluido
 
@@ -39,6 +39,11 @@
 - [x] Smoke visual local sem credenciais em `http://127.0.0.1:5175/login` confirmou login renderizado, ausencia de token manual e ausencia da mensagem antiga de listagem para proximo ciclo; evidencia segura em `harness-results/spec009-admin-login-local.png`.
 - [x] Backend da spec 009 corrigido para hidratar `GET /v1/admin/lawyers` com `name`, `email`, `mainAreaId` e `secondaryAreaIds`, alem de persistir `lawyer_specialties` no cadastro.
 - [x] Smoke autenticado local da spec 009 passou com credencial admin real do arquivo de testes, backend local apontando para Supabase real, geocoding stub local e limpeza final `remainingSpec009Profiles=0`; senha/token/service role nao foram impressos.
+- [x] Correcao/garantia de persistencia do status de aprovacao do advogado coberta por teste backend: `PATCH /v1/admin/lawyers/:id` persiste status e a listagem subsequente reflete a escolha; aprovacao sem coordenada valida segue bloqueada pelo backend.
+- [x] Formulario admin ganhou upload de foto de perfil e capa via `POST /v1/admin/lawyer-media`, preview de imagem e fallback por URL HTTPS.
+- [x] View `Oracoes` criada para carregar pedidos recebidos via `GET /v1/admin/prayer-requests`.
+- [x] View `Usuarios` criada para listar usuarios cadastrados, visualizar dados operacionais e bloquear/desbloquear via `PATCH /v1/admin/users/:id`.
+- [x] Gates locais do ciclo ampliado: admin `npm run typecheck`, `npm run test`, `npm run build`, `npm run harness` exit 0; Browser local em `http://localhost:5176/login` confirmou login, sidebar com `Oracoes`/`Usuarios` e console sem erros.
 
 ## Em Andamento
 
@@ -47,6 +52,7 @@
 - [x] Validar formulario com token admin real contra backend/Supabase (smoke e2e no backend `scripts/admin-form-smoke.ts`: geocode/cep 200, lawyers list 200 `persistence=supabase`, create 201 + limpeza via service role; sem residuo).
 - [x] Implementar spec 008 Parte 1 local com views reais, icones e logo arredondada.
 - [x] Implementar spec 009 com gestao operacional de advogados usando contratos backend existentes.
+- [x] Implementar painel admin ampliado com midia, oracoes e usuarios.
 
 ## Bloqueios
 
@@ -55,8 +61,10 @@
 - Backend Railway passou a retornar `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app` apos o commit backend `844c048`; o browser carrega `/v1/areas` com `200` e sem falha.
 - Spec 008 Parte 1 foi validada localmente; para operar em producao, ainda exige commit/push/deploy Vercel e smoke publicado proporcional.
 - Spec 009 esta validada com smoke autenticado local. Antes de operar em producao, publicar admin/backend e repetir smoke proporcional no Vercel/Railway.
+- O ciclo ampliado depende do backend novo e da migration `0004_admin_users_blocking.sql` aplicada no Supabase antes de operar bloqueio de usuarios em producao.
+- Migration `0004_admin_users_blocking.sql` aplicada manualmente pelo usuario no Supabase SQL Editor aprovado; verificacao REST redigida confirmou `profiles.blocked_at`.
 - Proximos ciclos devem ser iniciados pela raiz do projeto para carregar a governanca central `.codex/` e specs em `.codex/specs/`.
 
 ## Proximo Passo
 
-Spec 009 esta `ADMIN_GESTAO_ADVOGADOS_SMOKE_AUTH_OK`. Proximo gate recomendado para admin: commit/push/deploy de admin e backend, seguido de smoke proporcional publicado no Vercel/Railway sem registrar PII sensivel.
+Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_LOCAL_OK` e a migration `0004` esta aplicada. Proximo gate: publicar admin/backend e repetir smoke proporcional no Vercel/Railway sem registrar PII sensivel.

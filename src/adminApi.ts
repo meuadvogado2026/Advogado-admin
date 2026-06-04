@@ -57,6 +57,34 @@ export type LawyerRecord = {
   updatedAt: string;
 };
 
+export type AdminPrayerRequest = {
+  id: string;
+  message: string;
+  anonymous: boolean;
+  status: "received";
+  createdAt: string;
+  client?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+};
+
+export type AdminUserRecord = {
+  id: string;
+  role: "client" | "lawyer" | "admin";
+  name: string;
+  email: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+  blockedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lawyerProfileId?: string | null;
+  lawyerStatus?: LawyerStatus | null;
+};
+
 export type LawyerFormState = {
   name: string;
   email: string;
@@ -115,6 +143,10 @@ export function buildLawyerPayload(form: LawyerFormState) {
 
 export function buildLawyerStatusPatch(status: LawyerStatus) {
   return { status };
+}
+
+export function buildUserBlockedPatch(blocked: boolean) {
+  return { blocked };
 }
 
 export class AdminApiError extends Error {
@@ -188,4 +220,39 @@ export async function updateLawyerStatus(token: string, lawyerId: string, status
     }
   );
   return parseJson<{ lawyer: LawyerRecord }>(response);
+}
+
+export async function uploadLawyerImage(
+  token: string,
+  input: { kind: "avatar" | "cover"; fileName: string; mimeType: string; base64Data: string }
+) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminLawyerMedia}`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(input)
+  });
+  return parseJson<{ image: { url: string; path: string; contentType: string }; persistence: string }>(response);
+}
+
+export async function fetchPrayerRequests(token: string): Promise<{ requests: AdminPrayerRequest[]; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPrayerRequests}`, {
+    headers: authHeaders(token)
+  });
+  return parseJson<{ requests: AdminPrayerRequest[]; persistence: string }>(response);
+}
+
+export async function fetchAdminUsers(token: string): Promise<{ users: AdminUserRecord[]; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminUsers}`, {
+    headers: authHeaders(token)
+  });
+  return parseJson<{ users: AdminUserRecord[]; persistence: string }>(response);
+}
+
+export async function updateAdminUserBlocked(token: string, userId: string, blocked: boolean) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminUserById.replace(":id", encodeURIComponent(userId))}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify(buildUserBlockedPatch(blocked))
+  });
+  return parseJson<{ user: AdminUserRecord }>(response);
 }

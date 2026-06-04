@@ -1,6 +1,6 @@
 # Admin API Contracts - Meu Advogado 2.0
 
-**Estado:** UI spec 009 integrada aos contratos backend de gestao de advogados
+**Estado:** UI admin integrada aos contratos backend de advogados, oracoes, usuarios e midia
 
 ## Dashboard
 
@@ -19,7 +19,8 @@ Cadastro deve aceitar:
 - especialidades;
 - WhatsApp;
 - CEP e endereco;
-- URL HTTPS de foto/capa, mini bio e bio completa, sem upload;
+- URL HTTPS de foto/capa, mini bio e bio completa;
+- upload autenticado de foto/capa via backend em `POST /v1/admin/lawyer-media`;
 - status/plano.
 
 ## CEP
@@ -30,6 +31,10 @@ Retorna endereco e coordenadas ou erro validavel.
 
 ## Operacao
 
+- `GET /v1/admin/prayer-requests`
+- `GET /v1/admin/users`
+- `PATCH /v1/admin/users/:id`
+- `POST /v1/admin/lawyer-media`
 - `GET /v1/admin/urgent-calls`
 - `PATCH /v1/admin/urgent-calls/:id`
 - `GET /v1/admin/clients`
@@ -68,6 +73,14 @@ Spec 009 implementou gestao operacional local de advogados na UI:
 - `PATCH /v1/admin/lawyers/:id` atualiza status com payload minimo `{ "status": "..." }`.
 - A regra de aprovacao com coordenada valida permanece no backend.
 - `POST /v1/admin/lawyers` persiste as especialidades em `lawyer_specialties`; sem acesso direto do admin ao Supabase.
+
+## Ciclo admin operacional - oracoes, usuarios e midia
+
+- O formulario de advogado agora permite upload de foto de perfil e foto de capa via backend, renderiza preview e grava a URL retornada no payload de cadastro.
+- `POST /v1/admin/lawyer-media` recebe imagem JPG/PNG/WebP em base64, limita o arquivo a 2MB, armazena por repository backend e retorna URL publica segura.
+- `GET /v1/admin/prayer-requests` alimenta a view `Oracoes`, exibindo texto do pedido apenas para admin autenticado.
+- `GET /v1/admin/users` alimenta a view `Usuarios`, com busca local, detalhe de dados cadastrais e status de bloqueio.
+- `PATCH /v1/admin/users/:id` bloqueia/desbloqueia usuario pelo backend; a propria sessao admin nao pode ser bloqueada por esse fluxo.
 
 ## Spec 006 - Login E Sessao Admin
 
