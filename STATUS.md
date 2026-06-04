@@ -47,7 +47,7 @@
 - [x] Ciclo ampliado publicado no Vercel pelo commit admin `783e76e`, junto do backend Railway `a0067c4`, apos migration `0004` aplicada no Supabase aprovado.
 - [x] Smoke publico producao: `/login` HTTP `200`, bundle novo sem `localhost`, sem token manual, endpoints admin novos sem token retornando `401` no backend e CORS `204` para a origem Vercel.
 - [x] Smoke autenticado assistido producao: painel admin abriu, advogados listaram, status persistiu apos recarga, upload de imagem pequena funcionou, views `Oracoes` e `Usuarios` abriram e bloqueio/desbloqueio de usuario descartavel seguro passou com limpeza dos dados de teste.
-- [x] Melhorias publicadas em 2026-06-04 pelo commit `bf93a39`: view `Advogados` ganhou acao de editar advogado usando `PATCH /v1/admin/lawyers/:id`; view `Oracoes` marca/reabre leitura com estado visual; view `Parceiros` permite upload, preview e cadastro de logos. Admin `npm run harness` exit 0, Browser local confirmou `/login` e smoke publico basico `/login` retornou 200.
+- [x] Melhorias publicadas em 2026-06-04 pelo commit `bf93a39`: view `Advogados` ganhou acao de editar advogado usando `PATCH /v1/admin/lawyers/:id`; view `Oracoes` marca/reabre leitura com estado visual; view `Parceiros` permite upload, preview e cadastro de logos. Admin `npm run harness` exit 0, Browser local confirmou `/login`, smoke publico basico `/login` retornou 200 e smoke funcional backend validou oracao lida/parceiro com limpeza.
 - [x] Formulario admin de advogado ganhou campos opcionais HTTPS para Instagram, LinkedIn, Facebook e site profissional, enviados ao backend junto dos demais dados operacionais. Publicacao social fechada em 2026-06-04 com Vercel `/login` 200 e bundle sem `localhost`; backend/mobile publicados e validados.
 - [x] Bugfix publicado no commit `801cdc1`: edicao de advogado agora envia PATCH parcial comparando contra o registro original, permitindo salvar status/redes sociais sem depender de cadastro completo legado e sem reconsultar CEP quando o CEP nao mudou. Admin `npm run harness` exit 0 e Vercel `/login` 200 com bundle novo sem `localhost`.
 
@@ -67,10 +67,10 @@
 - Admin Vercel publicado esta validado para o fluxo operacional principal. Negativo nao-admin publicado segue opcional/pendente ate haver credencial segura desse perfil no momento.
 - Backend Railway passou a retornar `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app` apos o commit backend `844c048`; o browser carrega `/v1/areas` com `200` e sem falha.
 - Admin operacional ampliado esta publicado e validado em producao. Migration `0004_admin_users_blocking.sql` aplicada manualmente pelo usuario no Supabase SQL Editor aprovado; verificacao REST redigida confirmou `profiles.blocked_at`.
-- Melhorias de edicao/oracao/parceiros ja foram publicadas no admin, mas aguardam backend com migration `0005_admin_prayers_partners.sql` aplicada antes do smoke funcional publicado das rotas novas.
+- Melhorias de edicao/oracao/parceiros ja foram publicadas e a migration `0005_admin_prayers_partners.sql` foi aplicada; smoke funcional publicado validou oracao lida e parceiro descartavel com limpeza.
 - Negativo nao-admin publicado segue opcional/pendente ate haver credencial segura desse perfil no momento.
 - Proximos ciclos devem ser iniciados pela raiz do projeto para carregar a governanca central `.codex/` e specs em `.codex/specs/`.
 
 ## Proximo Passo
 
-Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. Edicao de advogado esta `ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK`; perfil social esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`.
+Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. Edicao de advogado esta `ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK`; perfil social esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`; oracao lida/parceiros esta `ADMIN_MELHORIAS_OPERACIONAIS_PRODUCAO_OK`.
