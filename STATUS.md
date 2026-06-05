@@ -5,7 +5,7 @@
 **Veredito:** ADMIN_LAYOUT_DARK_LOCAL_OK / ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK / PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
 
 - [x] Primeiro acesso do advogado publicado no commit `c18fae3`: cadastro novo mostra convite enviado pelo backend e detalhe operacional exibe `Sem acesso`, `Convite enviado`, `Troca de senha pendente` ou `Acesso ativo`; legados sem convite ganham botao `Ativar acesso`, chamando `POST /v1/admin/lawyers/:id/access-invite`. Admin nao exibe senha, token, action link ou service role. Gates: `npm run harness` exit 0 (19 testes, build e smoke), Vercel `/login` 200 e bundle publicado contem `access-invite`.
-- [x] Hotfix convite advogado local em 2026-06-05: criada pagina publica `/primeiro-acesso` para receber redirect do Supabase, tratar link expirado e definir senha via backend `POST /v1/auth/change-password` sem salvar token do convite. Gates: `npm run typecheck` exit 0 e `npm run test -- --run tests/contracts.test.ts` exit 0 (20 testes). Pendente: publicar Vercel e reenviar convite expirado.
+- [x] Hotfix convite advogado publicado em 2026-06-05 no commit `cd8b9df`: criada pagina publica `/primeiro-acesso` para receber redirect do Supabase, tratar link expirado e definir senha via backend `POST /v1/auth/change-password` sem salvar token do convite. Gates: `npm run harness` exit 0 (20 testes/build/smoke), Vercel `/primeiro-acesso` 200 e bundle publicado contem `Primeiro acesso`/`change-password`. Pendente operacional: reenviar convite expirado.
 
 ## Concluido
 
