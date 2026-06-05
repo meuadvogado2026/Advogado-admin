@@ -57,8 +57,21 @@ export type LawyerRecord = {
   facebookUrl?: string | null;
   websiteUrl?: string | null;
   status: LawyerStatus;
+  mustChangePassword?: boolean;
+  accessInvitedAt?: string | null;
+  firstLoginCompletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type LawyerAccessResult = {
+  lawyer: LawyerRecord;
+  access: {
+    status: "invited" | "not_configured";
+    delivery: "email" | "simulated" | "none";
+    invitedAt?: string;
+  };
+  persistence: string;
 };
 
 export type AdminPrayerRequest = {
@@ -84,6 +97,9 @@ export type AdminUserRecord = {
   avatarUrl?: string | null;
   coverUrl?: string | null;
   blockedAt?: string | null;
+  mustChangePassword?: boolean;
+  accessInvitedAt?: string | null;
+  firstLoginCompletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   lawyerProfileId?: string | null;
@@ -338,13 +354,13 @@ export async function geocodeCep(token: string, cep: string): Promise<GeocodeCep
   return parseJson<GeocodeCepResult>(response);
 }
 
-export async function createLawyer(token: string, form: LawyerFormState): Promise<{ lawyer: LawyerRecord }> {
+export async function createLawyer(token: string, form: LawyerFormState): Promise<LawyerAccessResult> {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminLawyers}`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(buildLawyerPayload(form))
   });
-  return parseJson<{ lawyer: LawyerRecord }>(response);
+  return parseJson<LawyerAccessResult>(response);
 }
 
 export async function updateLawyer(token: string, lawyerId: string, form: LawyerFormState, original?: LawyerRecord) {
@@ -357,6 +373,17 @@ export async function updateLawyer(token: string, lawyerId: string, form: Lawyer
     }
   );
   return parseJson<{ lawyer: LawyerRecord }>(response);
+}
+
+export async function inviteLawyerAccess(token: string, lawyerId: string): Promise<LawyerAccessResult> {
+  const response = await fetch(
+    `${API_BASE_URL}${apiContracts.adminLawyerAccessInvite.replace(":id", encodeURIComponent(lawyerId))}`,
+    {
+      method: "POST",
+      headers: authHeaders(token)
+    }
+  );
+  return parseJson<LawyerAccessResult>(response);
 }
 
 export async function fetchLawyers(token: string): Promise<{ lawyers: LawyerRecord[]; persistence: string }> {

@@ -4,6 +4,7 @@ export const apiContracts = {
   areas: "/v1/areas",
   adminLawyers: "/v1/admin/lawyers",
   adminLawyerById: "/v1/admin/lawyers/:id",
+  adminLawyerAccessInvite: "/v1/admin/lawyers/:id/access-invite",
   adminGeocodeCep: "/v1/admin/geocode/cep",
   adminPrayerRequests: "/v1/admin/prayer-requests",
   adminPrayerRequestById: "/v1/admin/prayer-requests/:id",

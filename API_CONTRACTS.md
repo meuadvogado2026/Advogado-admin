@@ -11,6 +11,7 @@
 - `GET /v1/admin/lawyers`
 - `POST /v1/admin/lawyers`
 - `PATCH /v1/admin/lawyers/:id`
+- `POST /v1/admin/lawyers/:id/access-invite`
 
 Cadastro deve aceitar:
 
@@ -25,6 +26,11 @@ Cadastro deve aceitar:
 
 Edicao usa o mesmo formulario e `PATCH /v1/admin/lawyers/:id`, sem acesso direto ao
 Supabase. Alterar CEP revalida cidade/UF e coordenada pelo backend.
+
+Cadastro novo envia convite de primeiro acesso ao advogado pelo backend. Para legado,
+o detalhe do advogado mostra `Sem acesso` e habilita `Ativar acesso`, que chama
+`POST /v1/admin/lawyers/:id/access-invite`. O admin recebe apenas status operacional
+(`Convite enviado`, `Troca de senha pendente`, `Acesso ativo`), nunca senha, token ou link sensivel.
 
 ## CEP
 
@@ -82,6 +88,8 @@ Spec 009 implementou gestao operacional local de advogados na UI:
 - `PATCH /v1/admin/lawyers/:id` tambem atualiza dados operacionais completos quando chamado pelo formulario de edicao.
 - A regra de aprovacao com coordenada valida permanece no backend.
 - `POST /v1/admin/lawyers` persiste as especialidades em `lawyer_specialties`; sem acesso direto do admin ao Supabase.
+- `POST /v1/admin/lawyers` tambem provisiona convite Auth do advogado; o detalhe operacional exibe status de acesso sem segredo.
+- `POST /v1/admin/lawyers/:id/access-invite` ativa acesso para advogado legado sem Auth vinculado.
 
 ## Ciclo admin operacional - oracoes, usuarios e midia
 

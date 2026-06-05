@@ -15,6 +15,7 @@ import {
   fetchPartnerLogos,
   fetchPrayerRequests,
   geocodeCep,
+  inviteLawyerAccess,
   lawyerToForm,
   LawyerFormState,
   LawyerRecord,
@@ -61,6 +62,13 @@ function formatCoordinates(coordinates: Coordinates | null) {
 
 function formatSafeCoordinateState(lawyer: LawyerRecord) {
   return typeof lawyer.officeLat === "number" && typeof lawyer.officeLng === "number" ? "Coordenada validada" : "Coordenada pendente";
+}
+
+function formatAccessState(lawyer: LawyerRecord) {
+  if (lawyer.firstLoginCompletedAt) return "Acesso ativo";
+  if (lawyer.mustChangePassword) return "Troca de senha pendente";
+  if (lawyer.accessInvitedAt) return "Convite enviado";
+  return "Sem acesso";
 }
 
 function initials(name: string) {
@@ -170,6 +178,7 @@ export function App() {
   const [lawyersFeedback, setLawyersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingLawyers, setIsLoadingLawyers] = useState(false);
   const [isUpdatingLawyer, setIsUpdatingLawyer] = useState(false);
+  const [invitingLawyerId, setInvitingLawyerId] = useState<string | null>(null);
   const [editingLawyerId, setEditingLawyerId] = useState<string | null>(null);
   const [lawyerPage, setLawyerPage] = useState(1);
   const [lawyersLoadedAt, setLawyersLoadedAt] = useState(0);
@@ -644,11 +653,16 @@ export function App() {
     try {
       const originalLawyer = editingLawyerId ? lawyers.find((lawyer) => lawyer.id === editingLawyerId) : undefined;
       const response = editingLawyerId ? await updateLawyer(token, editingLawyerId, form, originalLawyer) : await createLawyer(token, form);
+      const createdAccess = !editingLawyerId
+        ? (response as { access?: { status?: string } }).access
+        : undefined;
       setFeedback({
         kind: "success",
         message: editingLawyerId
           ? "Advogado atualizado."
-          : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
+          : createdAccess?.status === "invited"
+            ? "Advogado salvo e convite de acesso enviado por e-mail."
+            : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
       });
       if ("lawyer" in response) {
         setLawyers((current) => {
@@ -670,6 +684,34 @@ export function App() {
       setFeedback({ kind: "error", message });
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleInviteLawyerAccess(lawyer: LawyerRecord) {
+    if (!token) {
+      setLawyersFeedback({ kind: "error", message: "Entre como admin antes de ativar acesso." });
+      return;
+    }
+
+    setInvitingLawyerId(lawyer.id);
+    setLawyersFeedback({ kind: "info", message: "Enviando convite de primeiro acesso..." });
+    try {
+      const response = await inviteLawyerAccess(token, lawyer.id);
+      setLawyers((current) => current.map((item) => (item.id === response.lawyer.id ? response.lawyer : item)));
+      setSelectedLawyerId(response.lawyer.id);
+      setLawyersLoadedAt(Date.now());
+      setLawyersFeedback({
+        kind: "success",
+        message:
+          response.access.delivery === "simulated"
+            ? "Convite de acesso simulado no ambiente local."
+            : "Convite de acesso enviado por e-mail."
+      });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao ativar acesso.";
+      setLawyersFeedback({ kind: "error", message });
+    } finally {
+      setInvitingLawyerId(null);
     }
   }
 
@@ -1069,6 +1111,10 @@ export function App() {
                       <dd>{formatSafeCoordinateState(selectedLawyer)}</dd>
                     </div>
                     <div>
+                      <dt>Acesso</dt>
+                      <dd>{formatAccessState(selectedLawyer)}</dd>
+                    </div>
+                    <div>
                       <dt>Contato administrativo</dt>
                       <dd>{selectedLawyer.email}</dd>
                     </div>
@@ -1099,6 +1145,16 @@ export function App() {
                   <button className="header-action" onClick={() => startEditLawyer(selectedLawyer)} type="button">
                     Editar advogado
                   </button>
+                  {!selectedLawyer.accessInvitedAt ? (
+                    <button
+                      className="secondary-action"
+                      disabled={invitingLawyerId === selectedLawyer.id}
+                      onClick={() => handleInviteLawyerAccess(selectedLawyer)}
+                      type="button"
+                    >
+                      {invitingLawyerId === selectedLawyer.id ? "Enviando convite" : "Ativar acesso"}
+                    </button>
+                  ) : null}
                 </>
               ) : (
                 <p className="empty-state">Selecione um advogado para ver detalhes operacionais.</p>
