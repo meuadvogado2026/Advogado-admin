@@ -4,7 +4,7 @@
 **Fase:** ADMIN MVP / PRODUCAO VALIDADA
 **Veredito:** ADMIN_LAYOUT_DARK_LOCAL_OK / ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK / PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
 
-- [x] Primeiro acesso do advogado implementado localmente: cadastro novo mostra convite enviado pelo backend e detalhe operacional exibe `Sem acesso`, `Convite enviado`, `Troca de senha pendente` ou `Acesso ativo`; legados sem convite ganham botao `Ativar acesso`, chamando `POST /v1/admin/lawyers/:id/access-invite`. Admin nao exibe senha, token, action link ou service role. Gate local: `npm run harness` exit 0 (19 testes, build e smoke). Pendente: publicar Vercel junto do backend/migration 0007.
+- [x] Primeiro acesso do advogado publicado no commit `c18fae3`: cadastro novo mostra convite enviado pelo backend e detalhe operacional exibe `Sem acesso`, `Convite enviado`, `Troca de senha pendente` ou `Acesso ativo`; legados sem convite ganham botao `Ativar acesso`, chamando `POST /v1/admin/lawyers/:id/access-invite`. Admin nao exibe senha, token, action link ou service role. Gates: `npm run harness` exit 0 (19 testes, build e smoke), Vercel `/login` 200 e bundle publicado contem `access-invite`.
 
 ## Concluido
 
