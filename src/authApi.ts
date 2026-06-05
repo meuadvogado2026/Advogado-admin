@@ -64,6 +64,19 @@ export async function fetchCurrentUser(token: string): Promise<AdminUser> {
   return data.user;
 }
 
+export async function changePasswordWithInviteToken(token: string, newPassword: string): Promise<AdminUser> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.changePassword}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ newPassword })
+  });
+  const data = await parseApiJson<{ user: AdminUser }>(response);
+  return data.user;
+}
+
 export async function loginAdmin(email: string, password: string): Promise<AdminSession> {
   const accessToken = await loginWithSupabase(email.trim(), password);
   const user = await fetchCurrentUser(accessToken);

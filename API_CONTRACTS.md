@@ -32,6 +32,11 @@ o detalhe do advogado mostra `Sem acesso` e habilita `Ativar acesso`, que chama
 `POST /v1/admin/lawyers/:id/access-invite`. O admin recebe apenas status operacional
 (`Convite enviado`, `Troca de senha pendente`, `Acesso ativo`), nunca senha, token ou link sensivel.
 
+`/primeiro-acesso` e uma pagina publica do admin/Vercel para receber o redirect do
+convite Supabase Auth, ler o `access_token` do hash e chamar
+`POST /v1/auth/change-password`. Links expirados exibem orientacao para pedir novo
+convite; nenhum token de convite e salvo em localStorage.
+
 ## CEP
 
 - `POST /v1/admin/geocode/cep`

@@ -32,6 +32,7 @@ import {
 } from "./adminApi";
 import {
   AdminSession,
+  changePasswordWithInviteToken,
   clearStoredSession,
   fetchCurrentUser,
   loadStoredSession,
@@ -44,6 +45,15 @@ import logo from "./assets/logo-blue.png";
 
 type Feedback = { kind: "idle" | "success" | "error" | "info"; message: string };
 type AdminView = "dashboard" | "lawyers" | "newLawyer" | "prayers" | "users" | "partners" | "operation";
+
+function readInviteHash() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return {
+    accessToken: params.get("access_token") ?? "",
+    errorCode: params.get("error_code") ?? params.get("error") ?? "",
+    errorDescription: params.get("error_description")?.replace(/\+/g, " ") ?? ""
+  };
+}
 
 const CACHE_TTL_MS = 45_000;
 const LAWYERS_PAGE_SIZE = 8;
@@ -162,7 +172,106 @@ const roleLabels: Record<AdminUserRecord["role"], string> = {
   lawyer: "Advogado"
 };
 
+function FirstAccessPage() {
+  const invite = useMemo(() => readInviteHash(), []);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [feedback, setFeedback] = useState<Feedback>(() => {
+    if (invite.errorCode) {
+      return {
+        kind: "error",
+        message:
+          invite.errorCode === "otp_expired"
+            ? "Este convite expirou. Solicite ao administrador um novo convite de acesso."
+            : invite.errorDescription || "Convite invalido. Solicite um novo acesso ao administrador."
+      };
+    }
+    if (!invite.accessToken) {
+      return { kind: "error", message: "Link de convite incompleto. Abra o link mais recente recebido por e-mail." };
+    }
+    return { kind: "info", message: "Defina uma senha para acessar o painel do advogado no aplicativo." };
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleFirstAccess(event: FormEvent) {
+    event.preventDefault();
+    if (!invite.accessToken) {
+      setFeedback({ kind: "error", message: "Link de convite invalido ou expirado." });
+      return;
+    }
+    if (password.length < 8) {
+      setFeedback({ kind: "error", message: "Use uma senha com pelo menos 8 caracteres." });
+      return;
+    }
+    if (password !== confirmPassword) {
+      setFeedback({ kind: "error", message: "As senhas nao conferem." });
+      return;
+    }
+
+    setIsSaving(true);
+    setFeedback({ kind: "info", message: "Salvando senha com seguranca..." });
+    try {
+      await changePasswordWithInviteToken(invite.accessToken, password);
+      window.history.replaceState(null, "", "/primeiro-acesso");
+      setPassword("");
+      setConfirmPassword("");
+      setFeedback({ kind: "success", message: "Senha definida. Agora entre no aplicativo com seu e-mail e nova senha." });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Nao foi possivel definir a senha.";
+      setFeedback({ kind: "error", message });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <main className="login-shell">
+      <section className="login-view" aria-label="Primeiro acesso do advogado">
+        <form className="panel login-panel" onSubmit={handleFirstAccess}>
+          <img alt="Advogado 2.0" className="login-logo" src={logo} />
+          <div>
+            <p className="eyebrow">Advogado</p>
+            <h1>Primeiro acesso</h1>
+          </div>
+
+          <label className="field">
+            <span>Nova senha</span>
+            <input
+              autoComplete="new-password"
+              disabled={isSaving || !invite.accessToken || Boolean(invite.errorCode)}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              value={password}
+            />
+          </label>
+
+          <label className="field">
+            <span>Confirmar senha</span>
+            <input
+              autoComplete="new-password"
+              disabled={isSaving || !invite.accessToken || Boolean(invite.errorCode)}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              type="password"
+              value={confirmPassword}
+            />
+          </label>
+
+          <button disabled={isSaving || !invite.accessToken || Boolean(invite.errorCode)} type="submit">
+            {isSaving ? "Salvando" : "Definir senha"}
+          </button>
+
+          {feedback.message ? <p className={`feedback ${feedback.kind}`}>{feedback.message}</p> : null}
+        </form>
+      </section>
+    </main>
+  );
+}
+
 export function App() {
+  if (window.location.pathname === "/primeiro-acesso") {
+    return <FirstAccessPage />;
+  }
+
   const [session, setSession] = useState<AdminSession | null>(() => loadStoredSession());
   const [activeView, setActiveView] = useState<AdminView>("dashboard");
   const [loginEmail, setLoginEmail] = useState("");

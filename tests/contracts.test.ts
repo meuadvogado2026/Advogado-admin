@@ -21,7 +21,7 @@ import {
   uploadPartnerLogo,
   updateLawyerStatus
 } from "../src/adminApi";
-import { fetchCurrentUser } from "../src/authApi";
+import { changePasswordWithInviteToken, fetchCurrentUser } from "../src/authApi";
 import { apiContracts } from "../src/contracts";
 
 describe("admin contracts", () => {
@@ -38,6 +38,7 @@ describe("admin contracts", () => {
 
   it("points session validation to the backend boundary only", () => {
     expect(apiContracts.me).toBe("/v1/me");
+    expect(apiContracts.changePassword).toBe("/v1/auth/change-password");
     expect(Object.values(apiContracts).some((path) => path.includes("supabase"))).toBe(false);
   });
 
@@ -238,6 +239,32 @@ describe("admin contracts", () => {
       await expect(fetchCurrentUser("redacted-test-token")).rejects.toMatchObject(
         new AdminApiError("Token invalido.", 401)
       );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("sets first access password through the backend without storing admin session", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toContain("/v1/auth/change-password");
+      expect(init?.method).toBe("POST");
+      expect(init?.headers).toEqual({
+        Authorization: "Bearer invite-token",
+        "Content-Type": "application/json"
+      });
+      expect(init?.body).toBe(JSON.stringify({ newPassword: "senha-segura-123" }));
+      return new Response(
+        JSON.stringify({ user: { id: "lawyer-1", email: "lawyer@example.test", role: "lawyer", mustChangePassword: false } }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    try {
+      await expect(changePasswordWithInviteToken("invite-token", "senha-segura-123")).resolves.toMatchObject({
+        id: "lawyer-1",
+        role: "lawyer"
+      });
     } finally {
       globalThis.fetch = originalFetch;
     }
