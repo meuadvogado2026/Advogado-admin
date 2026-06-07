@@ -67,11 +67,27 @@ function formatAddress(address: CepAddress) {
 
 function formatCoordinates(coordinates: Coordinates | null) {
   if (!coordinates) return "Coordenada pendente";
-  return `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)} (${coordinates.provider}, ${coordinates.confidence})`;
+  const metadata = `${coordinates.provider}, ${coordinates.precision}/${coordinates.confidence}`;
+  if (coordinates.confidence === "high" && (coordinates.precision === "street" || coordinates.precision === "manual")) {
+    return `Coordenada validada (${metadata})`;
+  }
+  return `Coordenada aproximada, confirmar localizacao (${metadata})`;
 }
 
 function formatSafeCoordinateState(lawyer: LawyerRecord) {
-  return typeof lawyer.officeLat === "number" && typeof lawyer.officeLng === "number" ? "Coordenada validada" : "Coordenada pendente";
+  if (lawyer.officeLocationStatus === "validated") return "Coordenada validada";
+  if (lawyer.officeLocationStatus === "needs_confirmation") return "Coordenada aproximada, confirmar localizacao";
+  if (typeof lawyer.officeLat === "number" && typeof lawyer.officeLng === "number") {
+    return "Coordenada aproximada, confirmar localizacao";
+  }
+  return "Coordenada pendente";
+}
+
+function formatGeocodeMetadata(lawyer: LawyerRecord) {
+  if (!lawyer.officeGeocodeProvider || !lawyer.officeGeocodePrecision || !lawyer.officeGeocodeConfidence) {
+    return "Metadados pendentes";
+  }
+  return `${lawyer.officeGeocodeProvider} - ${lawyer.officeGeocodePrecision}/${lawyer.officeGeocodeConfidence}`;
 }
 
 function formatAccessState(lawyer: LawyerRecord) {
@@ -669,6 +685,9 @@ export function App() {
       setAddress(null);
       setCoordinates(null);
     }
+    if (field === "officeNumber") {
+      setCoordinates(null);
+    }
   }
 
   function toggleSecondaryArea(areaId: string, checked: boolean) {
@@ -711,7 +730,13 @@ export function App() {
     );
     setCoordinates(
       typeof lawyer.officeLat === "number" && typeof lawyer.officeLng === "number"
-        ? { lat: lawyer.officeLat, lng: lawyer.officeLng, provider: "stub", precision: "cep_centroid", confidence: "medium" }
+        ? {
+            lat: lawyer.officeLat,
+            lng: lawyer.officeLng,
+            provider: lawyer.officeGeocodeProvider ?? "nominatim",
+            precision: lawyer.officeGeocodePrecision ?? "cep_centroid",
+            confidence: lawyer.officeGeocodeConfidence ?? "medium"
+          }
         : null
     );
     setFeedback({ kind: "info", message: "Edicao carregada. Alterar o CEP revalida a localizacao pelo backend." });
@@ -735,7 +760,7 @@ export function App() {
     setIsGeocoding(true);
     setFeedback({ kind: "info", message: "Consultando CEP pelo backend..." });
     try {
-      const result = await geocodeCep(token, form.officeCep);
+      const result = await geocodeCep(token, form.officeCep, form.officeNumber);
       setAddress(result.address);
       setCoordinates(result.coordinates);
       setFeedback({
@@ -755,6 +780,15 @@ export function App() {
     if (!canSubmit) {
       setFeedback({ kind: "error", message: "Preencha os campos obrigatorios antes de salvar." });
       return;
+    }
+    const manualLocationFilled = Boolean(form.officeManualLat.trim() || form.officeManualLng.trim());
+    if (manualLocationFilled) {
+      const lat = Number(form.officeManualLat.trim().replace(",", "."));
+      const lng = Number(form.officeManualLng.trim().replace(",", "."));
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        setFeedback({ kind: "error", message: "Informe latitude e longitude confirmadas validas." });
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -1217,7 +1251,11 @@ export function App() {
                     </div>
                     <div>
                       <dt>Geocoding</dt>
-                      <dd>{formatSafeCoordinateState(selectedLawyer)}</dd>
+                      <dd>
+                        {formatSafeCoordinateState(selectedLawyer)}
+                        {" - "}
+                        {formatGeocodeMetadata(selectedLawyer)}
+                      </dd>
                     </div>
                     <div>
                       <dt>Acesso</dt>
@@ -1254,6 +1292,11 @@ export function App() {
                   <button className="header-action" onClick={() => startEditLawyer(selectedLawyer)} type="button">
                     Editar advogado
                   </button>
+                  {selectedLawyer.officeLocationStatus !== "validated" ? (
+                    <button className="secondary-action" onClick={() => startEditLawyer(selectedLawyer)} type="button">
+                      Confirmar localizacao
+                    </button>
+                  ) : null}
                   {!selectedLawyer.accessInvitedAt ? (
                     <button
                       className="secondary-action"
@@ -1472,6 +1515,30 @@ export function App() {
                 {isGeocoding ? "Consultando" : "Consultar CEP"}
               </button>
             </div>
+
+            {editingLawyerId ? (
+              <div className="address-row">
+                <label className="field">
+                  <span>Latitude confirmada</span>
+                  <input
+                    inputMode="decimal"
+                    placeholder="-23.000000"
+                    value={form.officeManualLat}
+                    onChange={(event) => updateForm("officeManualLat", event.target.value)}
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Longitude confirmada</span>
+                  <input
+                    inputMode="decimal"
+                    placeholder="-46.000000"
+                    value={form.officeManualLng}
+                    onChange={(event) => updateForm("officeManualLng", event.target.value)}
+                  />
+                </label>
+              </div>
+            ) : null}
 
             <footer className="form-actions">
               {editingLawyerId ? (

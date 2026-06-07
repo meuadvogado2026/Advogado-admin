@@ -17,7 +17,7 @@ export type CepAddress = {
 export type Coordinates = {
   lat: number;
   lng: number;
-  provider: "stub" | "nominatim";
+  provider: "stub" | "nominatim" | "manual";
   precision: "cep_centroid" | "street" | "manual";
   confidence: "high" | "medium" | "low";
 };
@@ -48,6 +48,12 @@ export type LawyerRecord = {
   officeState?: string | null;
   officeLat?: number | null;
   officeLng?: number | null;
+  officeLocationPresent?: boolean;
+  officeGeocodeProvider?: Coordinates["provider"] | null;
+  officeGeocodePrecision?: Coordinates["precision"] | null;
+  officeGeocodeConfidence?: Coordinates["confidence"] | null;
+  officeGeocodedAt?: string | null;
+  officeLocationStatus?: "validated" | "needs_confirmation" | "pending";
   avatarUrl?: string | null;
   coverUrl?: string | null;
   miniBio?: string | null;
@@ -116,6 +122,8 @@ export type LawyerFormState = {
   secondaryAreaIds: string[];
   officeCep: string;
   officeNumber: string;
+  officeManualLat: string;
+  officeManualLng: string;
   avatarUrl: string;
   coverUrl: string;
   miniBio: string;
@@ -154,6 +162,8 @@ export const emptyLawyerForm: LawyerFormState = {
   secondaryAreaIds: [],
   officeCep: "",
   officeNumber: "",
+  officeManualLat: "",
+  officeManualLng: "",
   avatarUrl: "",
   coverUrl: "",
   miniBio: "",
@@ -175,6 +185,17 @@ export const emptyPartnerLogoForm: PartnerLogoFormState = {
 function optionalTrimmed(value: string) {
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function parseManualLocation(form: Pick<LawyerFormState, "officeManualLat" | "officeManualLng">) {
+  const latText = form.officeManualLat.trim().replace(",", ".");
+  const lngText = form.officeManualLng.trim().replace(",", ".");
+  if (!latText && !lngText) return null;
+  const lat = Number(latText);
+  const lng = Number(lngText);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
 }
 
 export function buildLawyerPayload(form: LawyerFormState) {
@@ -212,6 +233,7 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
   const oabState = form.oabState.trim().toUpperCase();
   const officeCep = form.officeCep.trim();
   const officeNumber = form.officeNumber.trim();
+  const manualLocation = parseManualLocation(form);
   const optionalFields = {
     avatarUrl: optionalTrimmed(form.avatarUrl),
     coverUrl: optionalTrimmed(form.coverUrl),
@@ -240,6 +262,7 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
     }
     if (officeCep && normalizeCep(officeCep) !== normalizeCep(original.officeCep)) payload.officeCep = officeCep;
     if (officeNumber && officeNumber !== original.officeNumber) payload.officeNumber = officeNumber;
+    if (manualLocation) payload.officeManualLocation = manualLocation;
     for (const [key, value] of Object.entries(optionalFields)) {
       const originalValue = original[key as keyof typeof optionalFields] ?? null;
       if (value !== originalValue) payload[key] = value;
@@ -261,6 +284,7 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
   }
   if (officeCep) payload.officeCep = officeCep;
   if (officeNumber) payload.officeNumber = officeNumber;
+  if (manualLocation) payload.officeManualLocation = manualLocation;
 
   return payload;
 }
@@ -288,6 +312,8 @@ export function lawyerToForm(lawyer: LawyerRecord): LawyerFormState {
     secondaryAreaIds: lawyer.secondaryAreaIds ?? [],
     officeCep: lawyer.officeCep,
     officeNumber: lawyer.officeNumber,
+    officeManualLat: "",
+    officeManualLng: "",
     avatarUrl: lawyer.avatarUrl ?? "",
     coverUrl: lawyer.coverUrl ?? "",
     miniBio: lawyer.miniBio ?? "",
@@ -345,11 +371,11 @@ export async function fetchAreas(): Promise<LegalArea[]> {
   return data.areas;
 }
 
-export async function geocodeCep(token: string, cep: string): Promise<GeocodeCepResult> {
+export async function geocodeCep(token: string, cep: string, officeNumber?: string): Promise<GeocodeCepResult> {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminGeocodeCep}`, {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ cep })
+    body: JSON.stringify({ cep, ...(officeNumber?.trim() ? { officeNumber: officeNumber.trim() } : {}) })
   });
   return parseJson<GeocodeCepResult>(response);
 }

@@ -206,6 +206,48 @@ describe("admin contracts", () => {
     expect(payload).toEqual({ secondaryAreaIds: ["consumidor", "trabalhista"] });
   });
 
+  it("sends confirmed office coordinates only through the protected lawyer PATCH", () => {
+    const original = {
+      id: "lawyer-1",
+      profileId: "profile-1",
+      name: "Dra. Marina Costa",
+      email: "marina@example.com",
+      whatsapp: "11999999999",
+      oabNumber: "123456",
+      oabState: "SP",
+      mainAreaId: "civil",
+      secondaryAreaIds: [],
+      officeCep: "01001000",
+      officeNumber: "100",
+      status: "pending_review" as const,
+      createdAt: "2026-06-03T00:00:00.000Z",
+      updatedAt: "2026-06-03T00:00:00.000Z"
+    };
+
+    const payload = buildLawyerUpdatePayload(
+      {
+        ...emptyLawyerForm,
+        name: original.name,
+        email: original.email,
+        whatsapp: original.whatsapp,
+        oabNumber: original.oabNumber,
+        oabState: original.oabState,
+        mainAreaId: original.mainAreaId,
+        officeCep: "01001-000",
+        officeNumber: original.officeNumber,
+        officeManualLat: "-23.550520",
+        officeManualLng: "-46.633308",
+        status: "approved"
+      },
+      original
+    );
+
+    expect(payload).toEqual({
+      officeManualLocation: { lat: -23.55052, lng: -46.633308 },
+      status: "approved"
+    });
+  });
+
   it("fetches the current admin user without exposing token in the response", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
