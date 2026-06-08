@@ -39,6 +39,7 @@ import {
   loginAdmin,
   storeSession
 } from "./authApi";
+import { OfficeLocationMap } from "./components/OfficeLocationMap";
 import { kpis } from "./contracts";
 import "./styles/app.css";
 import logo from "./assets/logo-blue.png";
@@ -688,6 +689,14 @@ export function App() {
     if (field === "officeNumber") {
       setCoordinates(null);
     }
+  }
+
+  function updateManualLocation(lat: string, lng: string) {
+    setForm((current) => ({
+      ...current,
+      officeManualLat: lat,
+      officeManualLng: lng
+    }));
   }
 
   function toggleSecondaryArea(areaId: string, checked: boolean) {
@@ -1517,26 +1526,36 @@ export function App() {
             </div>
 
             {editingLawyerId ? (
-              <div className="address-row">
-                <label className="field">
-                  <span>Latitude confirmada</span>
-                  <input
-                    inputMode="decimal"
-                    placeholder="-23.000000"
-                    value={form.officeManualLat}
-                    onChange={(event) => updateForm("officeManualLat", event.target.value)}
-                  />
-                </label>
+              <div className="manual-location-panel">
+                <OfficeLocationMap
+                  addressLabel={address ? formatAddress(address) : [selectedLawyer?.officeCity, selectedLawyer?.officeState].filter(Boolean).join("/")}
+                  coordinates={coordinates}
+                  manualLat={form.officeManualLat}
+                  manualLng={form.officeManualLng}
+                  onManualLocationChange={updateManualLocation}
+                />
 
-                <label className="field">
-                  <span>Longitude confirmada</span>
-                  <input
-                    inputMode="decimal"
-                    placeholder="-46.000000"
-                    value={form.officeManualLng}
-                    onChange={(event) => updateForm("officeManualLng", event.target.value)}
-                  />
-                </label>
+                <div className="address-row manual-coordinates-row">
+                  <label className="field">
+                    <span>Latitude confirmada</span>
+                    <input
+                      inputMode="decimal"
+                      placeholder="-23.000000"
+                      value={form.officeManualLat}
+                      onChange={(event) => updateForm("officeManualLat", event.target.value)}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Longitude confirmada</span>
+                    <input
+                      inputMode="decimal"
+                      placeholder="-46.000000"
+                      value={form.officeManualLng}
+                      onChange={(event) => updateForm("officeManualLng", event.target.value)}
+                    />
+                  </label>
+                </div>
               </div>
             ) : null}
 
