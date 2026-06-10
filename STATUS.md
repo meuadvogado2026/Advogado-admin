@@ -5,6 +5,10 @@
 - Ajuste visual em 2026-06-10: a gestao de estados/cidades passou a deixar os formularios
   apenas para cadastro, mover os registros para o painel lateral e paginar estados e
   cidades. Gates admin: contratos, typecheck, build e harness OK.
+- Ajuste operacional em 2026-06-10: registros de estados/cidades viraram linhas com
+  status e acoes separadas. Cidade pode ser apagada pelo painel; estado so habilita
+  apagar quando nao possui cidade ativa, mantendo o backend como autoridade final para
+  vinculos. Gates admin: contratos, typecheck, build e harness OK.
 
 CEP automatico, mapa create/edit do escritorio, coordenada final, seletores dependentes
 e gestao simples de estados/cidades implementados. A tela de estados/cidades nao usa

@@ -8,6 +8,8 @@ import {
   Coordinates,
   createAdminCity,
   createAdminState,
+  deleteAdminCity,
+  deleteAdminState,
   createPartnerLogo,
   createLawyer,
   emptyLawyerForm,
@@ -156,6 +158,10 @@ function Pagination({
       </div>
     </div>
   );
+}
+
+function statusLabel(active: boolean, activeText: string, inactiveText: string) {
+  return active ? activeText : inactiveText;
 }
 
 function formatDate(value: string) {
@@ -852,13 +858,48 @@ export function App() {
   }
 
   async function toggleState(state: StateRecord) {
-    await updateAdminState(token, state.id, { active: !state.active });
-    await handleLoadLocations();
+    try {
+      await updateAdminState(token, state.id, { active: !state.active });
+      await handleLoadLocations();
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao atualizar estado." });
+    }
   }
 
   async function toggleCity(city: CityRecord) {
-    await updateAdminCity(token, city.id, { active: !city.active });
-    await handleLoadLocations();
+    try {
+      await updateAdminCity(token, city.id, { active: !city.active });
+      await handleLoadLocations();
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao atualizar cidade." });
+    }
+  }
+
+  async function handleDeleteState(state: StateRecord) {
+    const activeCities = cities.filter((city) => city.stateId === state.id && city.active);
+    if (activeCities.length > 0) {
+      setLocationsFeedback({ kind: "error", message: "Desative ou apague as cidades ativas deste estado antes de apagar o estado." });
+      return;
+    }
+    if (!window.confirm(`Apagar o estado ${state.code} - ${state.name}?`)) return;
+    try {
+      await deleteAdminState(token, state.id);
+      setLocationsFeedback({ kind: "success", message: "Estado apagado." });
+      await handleLoadLocations();
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Nao foi possivel apagar o estado." });
+    }
+  }
+
+  async function handleDeleteCity(city: CityRecord) {
+    if (!window.confirm(`Apagar a cidade ${city.name}?`)) return;
+    try {
+      await deleteAdminCity(token, city.id);
+      setLocationsFeedback({ kind: "success", message: "Cidade apagada." });
+      await handleLoadLocations();
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Nao foi possivel apagar a cidade." });
+    }
   }
 
   function handleNavigate(view: AdminView) {
@@ -1497,9 +1538,26 @@ export function App() {
                 <h2>{states.length} registros</h2>
                 <div className="specialty-options simple-list">
                   {pagedStates.items.map((state) => (
-                    <button className="secondary-action" key={state.id} onClick={() => void toggleState(state)} type="button">
-                      {state.code} - {state.name} ({state.active ? "ativo" : "inativo"})
-                    </button>
+                    <div className="location-record" key={state.id}>
+                      <div>
+                        <strong>{state.code} - {state.name}</strong>
+                        <span>{statusLabel(state.active, "Ativo", "Inativo")}</span>
+                      </div>
+                      <div className="location-record-actions">
+                        <button className="secondary-action" onClick={() => void toggleState(state)} type="button">
+                          {state.active ? "Desativar" : "Ativar"}
+                        </button>
+                        <button
+                          className="danger-action"
+                          disabled={cities.some((city) => city.stateId === state.id && city.active)}
+                          onClick={() => void handleDeleteState(state)}
+                          title={cities.some((city) => city.stateId === state.id && city.active) ? "Desative ou apague as cidades ativas antes." : "Apagar estado"}
+                          type="button"
+                        >
+                          Apagar
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <Pagination
@@ -1516,9 +1574,20 @@ export function App() {
                 <h2>{cities.length} registros</h2>
                 <div className="specialty-options simple-list">
                   {pagedCities.items.map((city) => (
-                    <button className="secondary-action" key={city.id} onClick={() => void toggleCity(city)} type="button">
-                      {states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name} ({city.active ? "ativa" : "inativa"})
-                    </button>
+                    <div className="location-record" key={city.id}>
+                      <div>
+                        <strong>{states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name}</strong>
+                        <span>{statusLabel(city.active, "Ativa", "Inativa")}</span>
+                      </div>
+                      <div className="location-record-actions">
+                        <button className="secondary-action" onClick={() => void toggleCity(city)} type="button">
+                          {city.active ? "Desativar" : "Ativar"}
+                        </button>
+                        <button className="danger-action" onClick={() => void handleDeleteCity(city)} type="button">
+                          Apagar
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <Pagination

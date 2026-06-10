@@ -326,6 +326,13 @@ button:disabled {
   min-width: 146px;
 }
 
+.danger-action {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.28);
+  color: #ffb3b3;
+  min-width: 96px;
+}
+
 .kpi-grid {
   display: grid;
   gap: 24px;
@@ -953,6 +960,47 @@ textarea {
   margin-bottom: 2px;
 }
 
+.location-record {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.location-record strong,
+.location-record span {
+  display: block;
+}
+
+.location-record strong {
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.location-record span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.location-record-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.location-record-actions .secondary-action,
+.location-record-actions .danger-action {
+  min-height: 40px;
+  min-width: 92px;
+  padding: 0 12px;
+}
+
 .user-row {
   grid-template-columns: 10px 44px minmax(150px, 1fr) minmax(86px, 120px) 112px;
 }
@@ -1144,6 +1192,7 @@ dd {
   .prayer-hero,
   .pagination-row,
   .lawyer-row,
+  .location-record,
   .user-row {
     display: grid;
     grid-template-columns: 1fr;
@@ -1166,6 +1215,7 @@ dd {
 
   .prayer-hero .toolbar-actions,
   .office-map-actions,
+  .location-record-actions,
   .pagination-row div {
     display: grid;
     grid-template-columns: 1fr;
