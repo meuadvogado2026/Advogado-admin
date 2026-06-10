@@ -2,9 +2,10 @@
 
 ## Spec 012 - 2026-06-10
 
-CEP automatico, mapa create/edit, coordenada final, seletores dependentes e gestao de
-estados/cidades com centroide implementados. Harness passou com 23 testes; smoke
-autenticado cross-stack permanece pendente.
+CEP automatico, mapa create/edit do escritorio, coordenada final, seletores dependentes
+e gestao simples de estados/cidades implementados. A tela de estados/cidades nao usa
+mapa nem centroide; DF fica pre-cadastrado pela migration `0012`. Smoke autenticado
+cross-stack permanece pendente.
 
 **Ultima atualizacao:** 2026-06-10
 **Fase:** ADMIN MVP / PRODUCAO VALIDADA

@@ -464,7 +464,7 @@ export async function fetchAdminCities(token: string, stateId?: string): Promise
 
 export async function createAdminCity(
   token: string,
-  input: { stateId: string; name: string; active: boolean; center: { lat: number; lng: number } }
+  input: { stateId: string; name: string; active: boolean; center?: { lat: number; lng: number } }
 ) {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminCities}`, {
     method: "POST",

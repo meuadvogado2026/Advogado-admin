@@ -3,7 +3,7 @@
 ## Spec 012
 
 - Mapa create/edit, CEP automatico, resposta antiga ignorada e coordenada no POST/PATCH.
-- Estado/cidade dependentes, disponibilidade, bloqueios e gestao do catalogo/centroide.
+- Estado/cidade dependentes, disponibilidade, bloqueios e gestao simples do catalogo sem mapa.
 
 ## Harness Obrigatorio
 

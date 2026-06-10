@@ -309,7 +309,7 @@ export function App() {
   const [states, setStates] = useState<StateRecord[]>([]);
   const [cities, setCities] = useState<CityRecord[]>([]);
   const [stateDraft, setStateDraft] = useState({ code: "", name: "" });
-  const [cityDraft, setCityDraft] = useState({ stateId: "", name: "", centerLat: "", centerLng: "" });
+  const [cityDraft, setCityDraft] = useState({ stateId: "", name: "" });
   const [locationsFeedback, setLocationsFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
   const [lawyerSearch, setLawyerSearch] = useState("");
@@ -816,15 +816,13 @@ export function App() {
 
   async function handleCreateCity(event: FormEvent) {
     event.preventDefault();
-    const centerLat = Number(cityDraft.centerLat.replace(",", "."));
-    const centerLng = Number(cityDraft.centerLng.replace(",", "."));
-    if (!token || !cityDraft.stateId || !cityDraft.name.trim() || !Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
-      setLocationsFeedback({ kind: "error", message: "Informe estado, cidade e centroide validos." });
+    if (!token || !cityDraft.stateId || !cityDraft.name.trim()) {
+      setLocationsFeedback({ kind: "error", message: "Informe estado e cidade." });
       return;
     }
     try {
-      await createAdminCity(token, { stateId: cityDraft.stateId, name: cityDraft.name, active: true, center: { lat: centerLat, lng: centerLng } });
-      setCityDraft((current) => ({ ...current, name: "", centerLat: "", centerLng: "" }));
+      await createAdminCity(token, { stateId: cityDraft.stateId, name: cityDraft.name, active: true });
+      setCityDraft((current) => ({ ...current, name: "" }));
       await handleLoadLocations();
     } catch (error) {
       setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao criar cidade." });
@@ -1453,7 +1451,7 @@ export function App() {
                 <button type="submit">Cadastrar estado</button>
               </form>
 
-              <div className="specialty-options">
+              <div className="specialty-options simple-list">
                 {states.map((state) => (
                   <button className="secondary-action" key={state.id} onClick={() => void toggleState(state)} type="button">
                     {state.code} - {state.name} ({state.active ? "ativo" : "inativo"})
@@ -1461,7 +1459,7 @@ export function App() {
                 ))}
               </div>
 
-              <form className="visual-grid" onSubmit={handleCreateCity}>
+              <form className="address-row" onSubmit={handleCreateCity}>
                 <label className="field">
                   <span>Estado da cidade</span>
                   <select value={cityDraft.stateId} onChange={(event) => setCityDraft((current) => ({ ...current, stateId: event.target.value }))}>
@@ -1473,35 +1471,19 @@ export function App() {
                   <span>Cidade</span>
                   <input value={cityDraft.name} onChange={(event) => setCityDraft((current) => ({ ...current, name: event.target.value }))} />
                 </label>
-                <div className="manual-location-panel wide">
-                  <OfficeLocationMap
-                    addressLabel={cityDraft.name || "Centroide da cidade"}
-                    coordinates={
-                      Number.isFinite(Number(cityDraft.centerLat.replace(",", "."))) && Number.isFinite(Number(cityDraft.centerLng.replace(",", "."))) && cityDraft.centerLat && cityDraft.centerLng
-                        ? { lat: Number(cityDraft.centerLat.replace(",", ".")), lng: Number(cityDraft.centerLng.replace(",", ".")), provider: "manual", precision: "manual", confidence: "high" }
-                        : null
-                    }
-                    manualLat={cityDraft.centerLat}
-                    manualLng={cityDraft.centerLng}
-                    onManualLocationChange={(centerLat, centerLng) => setCityDraft((current) => ({ ...current, centerLat, centerLng }))}
-                  />
-                  <div className="address-row">
-                    <label className="field"><span>Latitude centroide</span><input value={cityDraft.centerLat} onChange={(event) => setCityDraft((current) => ({ ...current, centerLat: event.target.value }))} /></label>
-                    <label className="field"><span>Longitude centroide</span><input value={cityDraft.centerLng} onChange={(event) => setCityDraft((current) => ({ ...current, centerLng: event.target.value }))} /></label>
-                    <button type="submit">Cadastrar cidade</button>
-                  </div>
-                </div>
+                <button type="submit">Cadastrar cidade</button>
               </form>
+              <p className="empty-state">As cidades do DF ja ficam pre-cadastradas. Use esta tela apenas para ativar, desativar ou incluir novas cidades.</p>
               {locationsFeedback.message ? <p className={`feedback ${locationsFeedback.kind}`}>{locationsFeedback.message}</p> : null}
             </div>
 
             <aside className="panel result-panel">
               <p className="eyebrow">Cidades cadastradas</p>
               <h2>{cities.length} registros</h2>
-              <div className="specialty-options">
+              <div className="specialty-options simple-list">
                 {cities.map((city) => (
                   <button className="secondary-action" key={city.id} onClick={() => void toggleCity(city)} type="button">
-                    {city.name} ({city.active ? "ativa" : "inativa"})
+                    {states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name} ({city.active ? "ativa" : "inativa"})
                   </button>
                 ))}
               </div>
