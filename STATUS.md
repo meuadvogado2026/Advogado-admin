@@ -1,4 +1,4 @@
-# Admin Status - Meu Advogado 2.0
+# Admin Status - Advogado 2.0
 
 ## Spec 012 - 2026-06-10
 
@@ -43,7 +43,7 @@ cross-stack permanece pendente.
 - [x] Shell administrativo placeholder criado.
 - [x] Contratos iniciais de backend registrados em codigo.
 - [x] Harness CLI, teste, build e smoke criados.
-- [x] Ambiente admin passou a ser governado pela `.codex/` unica da raiz; copia local `Meu Advogado 2.0 - admin/.codex` removida.
+- [x] Ambiente admin passou a ser governado pela `.codex/` unica da raiz; copia local `Advogado 2.0 - admin/.codex` removida.
 - [x] Auth/roles backend reais ja existem para rotas admin no backend; login visual admin foi implementado e validado localmente na spec 006.
 - [x] Formulario admin de advogado implementado e agora alimentado por sessao admin autenticada.
 - [x] UI consulta `POST /v1/admin/geocode/cep` e salva via `POST /v1/admin/lawyers`, sem acessar Supabase ou providers externos diretamente.

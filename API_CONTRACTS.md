@@ -1,4 +1,4 @@
-# Admin API Contracts - Meu Advogado 2.0
+# Admin API Contracts - Advogado 2.0
 
 **Estado:** UI admin integrada aos contratos backend de advogados, oracoes, usuarios e midia
 
@@ -74,7 +74,7 @@ O admin consome contratos locais em `src/contracts.ts`. A UI da spec 002 chama
 `GET /v1/areas`, `POST /v1/admin/geocode/cep` e `POST /v1/admin/lawyers` pelo
 backend. Antes da spec 006 o fluxo usava Bearer token admin informado pelo operador;
 agora o token vem da sessao admin autenticada. O fluxo foi validado com token admin
-real contra backend/Supabase pelo smoke e2e `Meu Advogado 2.0 - back/scripts/admin-form-smoke.ts`,
+real contra backend/Supabase pelo smoke e2e `Advogado 2.0 - back/scripts/admin-form-smoke.ts`,
 incluindo geocode, list, create e limpeza automatica via service role. A spec 006
 validou login visual admin, sessao, logout, rota privada bloqueada e usuario nao-admin
 bloqueado em smoke assistido.

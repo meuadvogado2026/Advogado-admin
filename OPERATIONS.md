@@ -1,4 +1,4 @@
-# Admin Operations - Meu Advogado 2.0
+# Admin Operations - Advogado 2.0
 
 **Hospedagem alvo:** Vercel
 

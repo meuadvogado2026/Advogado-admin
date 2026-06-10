@@ -1,4 +1,4 @@
-# Admin Test Plan - Meu Advogado 2.0
+# Admin Test Plan - Advogado 2.0
 
 ## Spec 012
 
@@ -90,7 +90,7 @@ Evidencias redigidas: `harness-results/spec006-admin-real-panel-redacted.png`, `
 
 Validacao sem credenciais reais:
 
-- `https://advogado20admin.vercel.app/`: HTTP `200`, titulo `Meu Advogado 2.0 Admin`.
+- `https://advogado20admin.vercel.app/`: HTTP `200`, titulo `Advogado 2.0 Admin`.
 - `https://advogado20admin.vercel.app/login`: HTTP `404`.
 - Tela publicada ainda mostra `Bearer token admin`.
 - Bundle publicado aponta para `http://localhost:3333`, nao para Railway.
@@ -111,7 +111,7 @@ Gates pendentes para producao:
 
 Validacao sem credenciais reais apos admin commit `cb0b707` e backend commit `e621676`:
 
-- `https://advogado20admin.vercel.app/`: HTTP `200`, titulo `Meu Advogado 2.0 Admin`.
+- `https://advogado20admin.vercel.app/`: HTTP `200`, titulo `Advogado 2.0 Admin`.
 - `https://advogado20admin.vercel.app/login`: HTTP `200`.
 - `/login` renderizou Email, Senha e Entrar.
 - Bundle publicado aponta para `https://advogado-back-production.up.railway.app` e nao para `localhost:3333`.

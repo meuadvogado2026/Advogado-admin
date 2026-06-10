@@ -1,4 +1,4 @@
-# Admin Architecture - Meu Advogado 2.0
+# Admin Architecture - Advogado 2.0
 
 ## Fronteiras
 

@@ -1,4 +1,4 @@
-# Admin Project - Meu Advogado 2.0
+# Admin Project - Advogado 2.0
 
 **Fase:** admin MVP com gestao operacional de advogados, oracoes e usuarios local
 **Stack alvo:** React web + TypeScript  
@@ -6,7 +6,7 @@
 
 ## Objetivo
 
-Construir o painel administrativo para operar a plataforma Meu Advogado 2.0.
+Construir o painel administrativo para operar a plataforma Advogado 2.0.
 
 ## Responsabilidades
 
@@ -32,7 +32,7 @@ Construir o painel administrativo para operar a plataforma Meu Advogado 2.0.
 ## Fontes De Verdade
 
 - `../DOCUMENTACAO_TECNICA.md`
-- `../.codex/SPEC_Specs/SPEC_MeuAdvogado20_SDD.md`
+- `../.codex/SPEC_Specs/SPEC_Advogado20_SDD.md`
 - `../Telas/painel_administrativo_web`
 
 ## Estado Atual
