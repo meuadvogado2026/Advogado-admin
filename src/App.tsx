@@ -68,6 +68,8 @@ const CACHE_TTL_MS = 45_000;
 const LAWYERS_PAGE_SIZE = 8;
 const PRAYERS_PAGE_SIZE = 6;
 const USERS_PAGE_SIZE = 8;
+const STATES_PAGE_SIZE = 5;
+const CITIES_PAGE_SIZE = 8;
 
 function formatAddress(address: CepAddress) {
   const parts = [address.street, address.neighborhood, address.city, address.state].filter(Boolean);
@@ -310,6 +312,8 @@ export function App() {
   const [cities, setCities] = useState<CityRecord[]>([]);
   const [stateDraft, setStateDraft] = useState({ code: "", name: "" });
   const [cityDraft, setCityDraft] = useState({ stateId: "", name: "" });
+  const [statePage, setStatePage] = useState(1);
+  const [cityPage, setCityPage] = useState(1);
   const [locationsFeedback, setLocationsFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
   const [lawyerSearch, setLawyerSearch] = useState("");
@@ -492,6 +496,16 @@ export function App() {
     [filteredUsers, userPage]
   );
 
+  const pagedStates = useMemo(
+    () => paginate(states, statePage, STATES_PAGE_SIZE),
+    [states, statePage]
+  );
+
+  const pagedCities = useMemo(
+    () => paginate(cities, cityPage, CITIES_PAGE_SIZE),
+    [cities, cityPage]
+  );
+
   useEffect(() => {
     setLawyerPage(1);
   }, [lawyerSearch, lawyerStatusFilter]);
@@ -503,6 +517,14 @@ export function App() {
   useEffect(() => {
     setUserPage(1);
   }, [userSearch]);
+
+  useEffect(() => {
+    setStatePage(1);
+  }, [states.length]);
+
+  useEffect(() => {
+    setCityPage(1);
+  }, [cities.length]);
 
   useEffect(() => {
     if (activeView === "lawyers" && session && lawyers.length === 0 && !isLoadingLawyers) {
@@ -1451,14 +1473,6 @@ export function App() {
                 <button type="submit">Cadastrar estado</button>
               </form>
 
-              <div className="specialty-options simple-list">
-                {states.map((state) => (
-                  <button className="secondary-action" key={state.id} onClick={() => void toggleState(state)} type="button">
-                    {state.code} - {state.name} ({state.active ? "ativo" : "inativo"})
-                  </button>
-                ))}
-              </div>
-
               <form className="address-row" onSubmit={handleCreateCity}>
                 <label className="field">
                   <span>Estado da cidade</span>
@@ -1478,14 +1492,42 @@ export function App() {
             </div>
 
             <aside className="panel result-panel">
-              <p className="eyebrow">Cidades cadastradas</p>
-              <h2>{cities.length} registros</h2>
-              <div className="specialty-options simple-list">
-                {cities.map((city) => (
-                  <button className="secondary-action" key={city.id} onClick={() => void toggleCity(city)} type="button">
-                    {states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name} ({city.active ? "ativa" : "inativa"})
-                  </button>
-                ))}
+              <div className="locations-list-section">
+                <p className="eyebrow">Estados cadastrados</p>
+                <h2>{states.length} registros</h2>
+                <div className="specialty-options simple-list">
+                  {pagedStates.items.map((state) => (
+                    <button className="secondary-action" key={state.id} onClick={() => void toggleState(state)} type="button">
+                      {state.code} - {state.name} ({state.active ? "ativo" : "inativo"})
+                    </button>
+                  ))}
+                </div>
+                <Pagination
+                  page={pagedStates.page}
+                  totalItems={states.length}
+                  totalPages={pagedStates.totalPages}
+                  onNext={() => setStatePage((current) => Math.min(current + 1, pagedStates.totalPages))}
+                  onPrevious={() => setStatePage((current) => Math.max(current - 1, 1))}
+                />
+              </div>
+
+              <div className="locations-list-section">
+                <p className="eyebrow">Cidades cadastradas</p>
+                <h2>{cities.length} registros</h2>
+                <div className="specialty-options simple-list">
+                  {pagedCities.items.map((city) => (
+                    <button className="secondary-action" key={city.id} onClick={() => void toggleCity(city)} type="button">
+                      {states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name} ({city.active ? "ativa" : "inativa"})
+                    </button>
+                  ))}
+                </div>
+                <Pagination
+                  page={pagedCities.page}
+                  totalItems={cities.length}
+                  totalPages={pagedCities.totalPages}
+                  onNext={() => setCityPage((current) => Math.min(current + 1, pagedCities.totalPages))}
+                  onPrevious={() => setCityPage((current) => Math.max(current - 1, 1))}
+                />
               </div>
             </aside>
           </section>

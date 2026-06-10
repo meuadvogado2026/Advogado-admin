@@ -2,6 +2,10 @@
 
 ## Spec 012 - 2026-06-10
 
+- Ajuste visual em 2026-06-10: a gestao de estados/cidades passou a deixar os formularios
+  apenas para cadastro, mover os registros para o painel lateral e paginar estados e
+  cidades. Gates admin: contratos, typecheck, build e harness OK.
+
 CEP automatico, mapa create/edit do escritorio, coordenada final, seletores dependentes
 e gestao simples de estados/cidades implementados. A tela de estados/cidades nao usa
 mapa nem centroide; DF fica pre-cadastrado pela migration `0012`. Smoke autenticado

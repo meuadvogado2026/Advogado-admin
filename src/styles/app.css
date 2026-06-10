@@ -937,6 +937,22 @@ textarea {
   gap: 10px;
 }
 
+.locations-list-section {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.locations-list-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.locations-list-section h2 {
+  margin-bottom: 2px;
+}
+
 .user-row {
   grid-template-columns: 10px 44px minmax(150px, 1fr) minmax(86px, 120px) 112px;
 }
