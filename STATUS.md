@@ -12,6 +12,10 @@
 - Ajuste visual em 2026-06-10: o painel de registros agora abre `Estados` e `Cidades`
   por botoes separados e cada item exibe apenas um `X` para exclusao. Gates admin:
   contratos, typecheck, build e harness OK.
+- Hotfix em 2026-06-10: `DELETE` de estados/cidades deixou de enviar
+  `Content-Type: application/json` sem body, removendo o erro Fastify
+  `FST_ERR_CTP_EMPTY_JSON_BODY`. Smoke real controlado validou bloqueio `409` com
+  cidade ativa e exclusao `204` apos inativar a cidade.
 
 CEP automatico, mapa create/edit do escritorio, coordenada final, seletores dependentes
 e gestao simples de estados/cidades implementados. A tela de estados/cidades nao usa

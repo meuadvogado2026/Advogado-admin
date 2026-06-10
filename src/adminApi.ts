@@ -408,6 +408,12 @@ function authHeaders(token: string) {
   };
 }
 
+function authOnlyHeaders(token: string) {
+  return {
+    Authorization: `Bearer ${token}`
+  };
+}
+
 export async function fetchAreas(): Promise<LegalArea[]> {
   const response = await fetch(`${API_BASE_URL}${apiContracts.areas}`);
   const data = await parseJson<{ areas: LegalArea[] }>(response);
@@ -451,7 +457,7 @@ export async function updateAdminState(token: string, id: string, input: Partial
 export async function deleteAdminState(token: string, id: string) {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminStateById.replace(":id", encodeURIComponent(id))}`, {
     method: "DELETE",
-    headers: authHeaders(token)
+    headers: authOnlyHeaders(token)
   });
   if (!response.ok) await parseJson(response);
 }
@@ -490,7 +496,7 @@ export async function updateAdminCity(
 export async function deleteAdminCity(token: string, id: string) {
   const response = await fetch(`${API_BASE_URL}${apiContracts.adminCityById.replace(":id", encodeURIComponent(id))}`, {
     method: "DELETE",
-    headers: authHeaders(token)
+    headers: authOnlyHeaders(token)
   });
   if (!response.ok) await parseJson(response);
 }
