@@ -2,6 +2,8 @@
 
 ## Spec 012
 
+- Confirmar que a gestao renderiza somente os registros ativos retornados pela API.
+- Confirmar que cadastrar novamente uma localidade inativa a faz reaparecer.
 - Mapa create/edit, CEP automatico, resposta antiga ignorada e coordenada no POST/PATCH.
 - Estado/cidade dependentes, disponibilidade, bloqueios e gestao simples do catalogo sem mapa.
 

@@ -2,6 +2,9 @@
 
 ## Spec 012 - 2026-06-10
 
+- Refinamento local: estados/cidades inativos nao aparecem; a tela informa que novo
+  cadastro com a mesma chave reativa o registro existente e remove status redundante.
+  Backend permanece autoridade da reativacao. Harness admin OK.
 - Ajuste visual em 2026-06-10: a gestao de estados/cidades passou a deixar os formularios
   apenas para cadastro, mover os registros para o painel lateral e paginar estados e
   cidades. Gates admin: contratos, typecheck, build e harness OK.

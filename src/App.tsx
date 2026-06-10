@@ -158,10 +158,6 @@ function Pagination({
   );
 }
 
-function statusLabel(active: boolean, activeText: string, inactiveText: string) {
-  return active ? activeText : inactiveText;
-}
-
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Data indisponivel";
@@ -1509,7 +1505,7 @@ export function App() {
                 </label>
                 <button type="submit">Cadastrar cidade</button>
               </form>
-              <p className="empty-state">As cidades do DF ja ficam pre-cadastradas. Use esta tela apenas para ativar, desativar ou incluir novas cidades.</p>
+              <p className="empty-state">A lista mostra somente registros ativos. Cadastrar novamente um estado ou cidade inativo reativa o registro existente.</p>
               {locationsFeedback.message ? <p className={`feedback ${locationsFeedback.kind}`}>{locationsFeedback.message}</p> : null}
             </div>
 
@@ -1541,7 +1537,6 @@ export function App() {
                     <div className="location-record" key={state.id}>
                       <div>
                         <strong>{state.code} - {state.name}</strong>
-                        <span>{statusLabel(state.active, "Ativo", "Inativo")}</span>
                       </div>
                       <div className="location-record-actions">
                         <button
@@ -1577,7 +1572,6 @@ export function App() {
                     <div className="location-record" key={city.id}>
                       <div>
                         <strong>{states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name}</strong>
-                        <span>{statusLabel(city.active, "Ativa", "Inativa")}</span>
                       </div>
                       <div className="location-record-actions">
                         <button
