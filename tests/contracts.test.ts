@@ -11,6 +11,9 @@ import {
   emptyLawyerForm,
   emptyPartnerLogoForm,
   fetchAdminUsers,
+  fetchStates,
+  fetchStateCities,
+  fetchAreas,
   fetchLawyers,
   fetchPartnerLogos,
   fetchPrayerRequests,
@@ -28,6 +31,36 @@ describe("admin contracts", () => {
   it("points admin lawyers to backend API only", () => {
     expect(apiContracts.adminLawyers).toBe("/v1/admin/lawyers");
     expect(Object.values(apiContracts).some((path) => path.includes("supabase"))).toBe(false);
+  });
+
+  it("loads the complete eight-specialty catalog used by the lawyer form", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      expect(String(input)).toContain("/v1/areas");
+      return new Response(
+        JSON.stringify({
+          areas: [
+            { id: "civil", name: "Direito Civil", slug: "civil" },
+            { id: "trabalhista", name: "Direito Trabalhista", slug: "trabalhista" },
+            { id: "familia", name: "Direito de Família", slug: "familia" },
+            { id: "previdenciario", name: "Direito Previdenciário", slug: "previdenciario" },
+            { id: "criminal", name: "Direito Criminal", slug: "criminal" },
+            { id: "consumidor", name: "Direito do Consumidor", slug: "consumidor" },
+            { id: "empresarial", name: "Direito Empresarial", slug: "empresarial" },
+            { id: "tributario", name: "Direito Tributário", slug: "tributario" }
+          ]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    try {
+      const areas = await fetchAreas();
+      expect(areas).toHaveLength(8);
+      expect(areas.map((area) => area.id)).toEqual(expect.arrayContaining(["empresarial", "tributario"]));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("points CEP geocoding to the backend boundary only", () => {
@@ -59,7 +92,7 @@ describe("admin contracts", () => {
     expect(buildPrayerRequestStatusPatch("read")).toEqual({ status: "read" });
   });
 
-  it("builds the backend lawyer payload with normalized OAB state", () => {
+  it("builds the backend lawyer payload with normalized OAB state and confirmed coordinates", () => {
     const payload = buildLawyerPayload({
       ...emptyLawyerForm,
       name: " Dra. Marina Costa ",
@@ -71,6 +104,11 @@ describe("admin contracts", () => {
       secondaryAreaIds: ["area-consumidor", "area-trabalhista"],
       officeCep: "01001-000",
       officeNumber: "100",
+      officeManualLat: "-23.550520",
+      officeManualLng: "-46.633308",
+      serviceStateId: "state-sp",
+      serviceCityId: "city-sao-paulo",
+      availableForMatches: true,
       avatarUrl: " https://cdn.example.test/avatar.jpg ",
       coverUrl: "",
       miniBio: " Atendimento civil ",
@@ -92,6 +130,10 @@ describe("admin contracts", () => {
       secondaryAreaIds: ["area-consumidor", "area-trabalhista"],
       officeCep: "01001-000",
       officeNumber: "100",
+      serviceStateId: "state-sp",
+      serviceCityId: "city-sao-paulo",
+      availableForMatches: true,
+      officeManualLocation: { lat: -23.55052, lng: -46.633308 },
       avatarUrl: "https://cdn.example.test/avatar.jpg",
       coverUrl: null,
       miniBio: "Atendimento civil",
@@ -102,6 +144,28 @@ describe("admin contracts", () => {
       websiteUrl: "https://marina.example.test",
       status: "approved"
     });
+  });
+
+  it("uses backend-only public geographic catalog contracts", async () => {
+    expect(apiContracts.states).toBe("/v1/states");
+    expect(apiContracts.stateCities).toBe("/v1/states/:stateId/cities");
+    expect(apiContracts.adminStates).toBe("/v1/admin/states");
+    expect(apiContracts.adminCities).toBe("/v1/admin/cities");
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/states/state-sp/cities")) {
+        return new Response(JSON.stringify({ cities: [{ id: "city-sp", stateId: "state-sp", name: "Sao Paulo" }] }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ states: [{ id: "state-sp", code: "SP", name: "Sao Paulo" }] }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      await expect(fetchStates()).resolves.toHaveLength(1);
+      await expect(fetchStateCities("state-sp")).resolves.toMatchObject([{ id: "city-sp", stateId: "state-sp" }]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("builds partial lawyer update payloads so status and social links do not require a full legacy record", () => {

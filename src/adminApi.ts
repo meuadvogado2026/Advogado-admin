@@ -6,6 +6,26 @@ export type LegalArea = {
   slug: string;
 };
 
+export type StateRecord = {
+  id: string;
+  code: string;
+  name: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CityRecord = {
+  id: string;
+  stateId: string;
+  name: string;
+  normalizedName: string;
+  active: boolean;
+  center: { lat: number; lng: number };
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type CepAddress = {
   cep: string;
   street: string;
@@ -54,6 +74,8 @@ export type LawyerRecord = {
   officeGeocodeConfidence?: Coordinates["confidence"] | null;
   officeGeocodedAt?: string | null;
   officeLocationStatus?: "validated" | "needs_confirmation" | "pending";
+  serviceCityId?: string | null;
+  availableForMatches?: boolean;
   avatarUrl?: string | null;
   coverUrl?: string | null;
   miniBio?: string | null;
@@ -124,6 +146,9 @@ export type LawyerFormState = {
   officeNumber: string;
   officeManualLat: string;
   officeManualLng: string;
+  serviceStateId: string;
+  serviceCityId: string;
+  availableForMatches: boolean;
   avatarUrl: string;
   coverUrl: string;
   miniBio: string;
@@ -164,6 +189,9 @@ export const emptyLawyerForm: LawyerFormState = {
   officeNumber: "",
   officeManualLat: "",
   officeManualLng: "",
+  serviceStateId: "",
+  serviceCityId: "",
+  availableForMatches: true,
   avatarUrl: "",
   coverUrl: "",
   miniBio: "",
@@ -199,6 +227,7 @@ function parseManualLocation(form: Pick<LawyerFormState, "officeManualLat" | "of
 }
 
 export function buildLawyerPayload(form: LawyerFormState) {
+  const manualLocation = parseManualLocation(form);
   return {
     name: form.name.trim(),
     email: form.email.trim(),
@@ -209,6 +238,10 @@ export function buildLawyerPayload(form: LawyerFormState) {
     secondaryAreaIds: form.secondaryAreaIds.filter((areaId) => areaId && areaId !== form.mainAreaId),
     officeCep: form.officeCep.trim(),
     officeNumber: form.officeNumber.trim(),
+    serviceStateId: form.serviceStateId,
+    serviceCityId: form.serviceCityId,
+    availableForMatches: form.availableForMatches,
+    ...(manualLocation ? { officeManualLocation: manualLocation } : {}),
     avatarUrl: optionalTrimmed(form.avatarUrl),
     coverUrl: optionalTrimmed(form.coverUrl),
     miniBio: optionalTrimmed(form.miniBio),
@@ -263,6 +296,11 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
     if (officeCep && normalizeCep(officeCep) !== normalizeCep(original.officeCep)) payload.officeCep = officeCep;
     if (officeNumber && officeNumber !== original.officeNumber) payload.officeNumber = officeNumber;
     if (manualLocation) payload.officeManualLocation = manualLocation;
+    if (form.serviceStateId) payload.serviceStateId = form.serviceStateId;
+    if (form.serviceCityId) payload.serviceCityId = form.serviceCityId;
+    if (form.availableForMatches !== (original.availableForMatches ?? true)) {
+      payload.availableForMatches = form.availableForMatches;
+    }
     for (const [key, value] of Object.entries(optionalFields)) {
       const originalValue = original[key as keyof typeof optionalFields] ?? null;
       if (value !== originalValue) payload[key] = value;
@@ -285,6 +323,8 @@ export function buildLawyerUpdatePayload(form: LawyerFormState, original?: Lawye
   if (officeCep) payload.officeCep = officeCep;
   if (officeNumber) payload.officeNumber = officeNumber;
   if (manualLocation) payload.officeManualLocation = manualLocation;
+  if (form.serviceStateId) payload.serviceStateId = form.serviceStateId;
+  if (form.serviceCityId) payload.serviceCityId = form.serviceCityId;
 
   return payload;
 }
@@ -314,6 +354,9 @@ export function lawyerToForm(lawyer: LawyerRecord): LawyerFormState {
     officeNumber: lawyer.officeNumber,
     officeManualLat: "",
     officeManualLng: "",
+    serviceStateId: "",
+    serviceCityId: lawyer.serviceCityId ?? "",
+    availableForMatches: lawyer.availableForMatches ?? true,
     avatarUrl: lawyer.avatarUrl ?? "",
     coverUrl: lawyer.coverUrl ?? "",
     miniBio: lawyer.miniBio ?? "",
@@ -369,6 +412,87 @@ export async function fetchAreas(): Promise<LegalArea[]> {
   const response = await fetch(`${API_BASE_URL}${apiContracts.areas}`);
   const data = await parseJson<{ areas: LegalArea[] }>(response);
   return data.areas;
+}
+
+export async function fetchStates(): Promise<StateRecord[]> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.states}`);
+  return (await parseJson<{ states: StateRecord[] }>(response)).states;
+}
+
+export async function fetchStateCities(stateId: string): Promise<CityRecord[]> {
+  const path = apiContracts.stateCities.replace(":stateId", encodeURIComponent(stateId));
+  const response = await fetch(`${API_BASE_URL}${path}`);
+  return (await parseJson<{ cities: CityRecord[] }>(response)).cities;
+}
+
+export async function fetchAdminStates(token: string): Promise<StateRecord[]> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminStates}?page=1&pageSize=50`, { headers: authHeaders(token) });
+  return (await parseJson<{ states: StateRecord[] }>(response)).states;
+}
+
+export async function createAdminState(token: string, input: { code: string; name: string; active: boolean }) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminStates}`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ ...input, code: input.code.trim().toUpperCase(), name: input.name.trim() })
+  });
+  return parseJson<{ state: StateRecord }>(response);
+}
+
+export async function updateAdminState(token: string, id: string, input: Partial<Pick<StateRecord, "code" | "name" | "active">>) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminStateById.replace(":id", encodeURIComponent(id))}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify(input)
+  });
+  return parseJson<{ state: StateRecord }>(response);
+}
+
+export async function deleteAdminState(token: string, id: string) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminStateById.replace(":id", encodeURIComponent(id))}`, {
+    method: "DELETE",
+    headers: authHeaders(token)
+  });
+  if (!response.ok) await parseJson(response);
+}
+
+export async function fetchAdminCities(token: string, stateId?: string): Promise<CityRecord[]> {
+  const query = `?page=1&pageSize=50${stateId ? `&stateId=${encodeURIComponent(stateId)}` : ""}`;
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminCities}${query}`, { headers: authHeaders(token) });
+  return (await parseJson<{ cities: CityRecord[] }>(response)).cities;
+}
+
+export async function createAdminCity(
+  token: string,
+  input: { stateId: string; name: string; active: boolean; center: { lat: number; lng: number } }
+) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminCities}`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ ...input, name: input.name.trim() })
+  });
+  return parseJson<{ city: CityRecord }>(response);
+}
+
+export async function updateAdminCity(
+  token: string,
+  id: string,
+  input: Partial<Pick<CityRecord, "stateId" | "name" | "active" | "center">>
+) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminCityById.replace(":id", encodeURIComponent(id))}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify(input)
+  });
+  return parseJson<{ city: CityRecord }>(response);
+}
+
+export async function deleteAdminCity(token: string, id: string) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminCityById.replace(":id", encodeURIComponent(id))}`, {
+    method: "DELETE",
+    headers: authHeaders(token)
+  });
+  if (!response.ok) await parseJson(response);
 }
 
 export async function geocodeCep(token: string, cep: string, officeNumber?: string): Promise<GeocodeCepResult> {

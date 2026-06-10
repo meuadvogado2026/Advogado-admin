@@ -1,9 +1,17 @@
 # Admin Status - Meu Advogado 2.0
 
-**Ultima atualizacao:** 2026-06-05
+## Spec 012 - 2026-06-10
+
+CEP automatico, mapa create/edit, coordenada final, seletores dependentes e gestao de
+estados/cidades com centroide implementados. Harness passou com 23 testes; smoke
+autenticado cross-stack permanece pendente.
+
+**Ultima atualizacao:** 2026-06-10
 **Fase:** ADMIN MVP / PRODUCAO VALIDADA
 **Veredito:** ADMIN_LAYOUT_DARK_LOCAL_OK / ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK / PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK / MIGRATION_0006_APLICADA_OK / MIGRATION_0005_APLICADA_OK / ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK / MIGRATION_0004_APLICADA_OK
 
+- [x] Contrato admin atualizado em 2026-06-10 para validar os nomes acentuados recebidos de `/v1/areas`: `Direito de Família`, `Direito Previdenciário` e `Direito Tributário`.
+- [x] Integracao do catalogo com 8 especialidades validada localmente em 2026-06-10: o formulario admin continua consumindo `/v1/areas` do backend e a cobertura de contrato confirma `Direito Empresarial` e `Direito Tributario` entre as 8 opcoes. Gates: `npm run typecheck`, 22 testes, `npm run build` e `npm run harness` exit 0. Disponibilidade em producao depende da aplicacao/publicacao backend da migration `0010`.
 - [x] Primeiro acesso do advogado publicado no commit `c18fae3`: cadastro novo mostra convite enviado pelo backend e detalhe operacional exibe `Sem acesso`, `Convite enviado`, `Troca de senha pendente` ou `Acesso ativo`; legados sem convite ganham botao `Ativar acesso`, chamando `POST /v1/admin/lawyers/:id/access-invite`. Admin nao exibe senha, token, action link ou service role. Gates: `npm run harness` exit 0 (19 testes, build e smoke), Vercel `/login` 200 e bundle publicado contem `access-invite`.
 - [x] Hotfix convite advogado publicado em 2026-06-05 no commit `cd8b9df`: criada pagina publica `/primeiro-acesso` para receber redirect do Supabase, tratar link expirado e definir senha via backend `POST /v1/auth/change-password` sem salvar token do convite. Gates: `npm run harness` exit 0 (20 testes/build/smoke), Vercel `/primeiro-acesso` 200 e bundle publicado contem `Primeiro acesso`/`change-password`. Pendente operacional: reenviar convite expirado.
 
@@ -78,4 +86,7 @@
 
 ## Proximo Passo
 
-Admin operacional ampliado segue `ADMIN_OPERACIONAL_ORACOES_USUARIOS_MIDIA_PRODUCAO_OK` em producao. Edicao de advogado esta `ADMIN_EDICAO_ADVOGADO_PATCH_PARCIAL_OK`; perfil social esta `PERFIL_ADVOGADO_SOCIAIS_PRODUCAO_OK`; oracao lida/parceiros esta `ADMIN_MELHORIAS_OPERACIONAIS_PRODUCAO_OK`. Melhorias de especialidades secundarias, paginacao/cache curto, avatares e Oracoes interativas estao publicadas no admin Vercel pelo commit `30439d3`.
+Redirect publico `/primeiro-acesso` esta publicado e permitido no Supabase. Falta apenas
+o smoke humano de definir senha a partir de convite recebido em e-mail real valido, sem
+registrar senha, token ou action link. O restante do admin operacional permanece publicado
+e validado.

@@ -1,15 +1,20 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AdminApiError,
   AdminPrayerRequest,
   AdminUserRecord,
   CepAddress,
+  CityRecord,
   Coordinates,
+  createAdminCity,
+  createAdminState,
   createPartnerLogo,
   createLawyer,
   emptyLawyerForm,
   emptyPartnerLogoForm,
   fetchAdminUsers,
+  fetchAdminCities,
+  fetchAdminStates,
   fetchAreas,
   fetchLawyers,
   fetchPartnerLogos,
@@ -22,6 +27,9 @@ import {
   LawyerStatus,
   PartnerLogoFormState,
   PartnerLogoRecord,
+  StateRecord,
+  updateAdminCity,
+  updateAdminState,
   updateAdminUserBlocked,
   updateLawyer,
   updateLawyerStatus,
@@ -45,7 +53,7 @@ import "./styles/app.css";
 import logo from "./assets/logo-blue.png";
 
 type Feedback = { kind: "idle" | "success" | "error" | "info"; message: string };
-type AdminView = "dashboard" | "lawyers" | "newLawyer" | "prayers" | "users" | "partners" | "operation";
+type AdminView = "dashboard" | "lawyers" | "newLawyer" | "locations" | "prayers" | "users" | "partners" | "operation";
 
 function readInviteHash() {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -298,6 +306,11 @@ export function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(Boolean(session));
   const [areas, setAreas] = useState<LegalArea[]>([]);
   const [lawyers, setLawyers] = useState<LawyerRecord[]>([]);
+  const [states, setStates] = useState<StateRecord[]>([]);
+  const [cities, setCities] = useState<CityRecord[]>([]);
+  const [stateDraft, setStateDraft] = useState({ code: "", name: "" });
+  const [cityDraft, setCityDraft] = useState({ stateId: "", name: "", centerLat: "", centerLng: "" });
+  const [locationsFeedback, setLocationsFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
   const [lawyerSearch, setLawyerSearch] = useState("");
   const [lawyerStatusFilter, setLawyerStatusFilter] = useState<"all" | LawyerStatus>("all");
@@ -335,6 +348,7 @@ export function App() {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [feedback, setFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const geocodeRequestRef = useRef(0);
   const [isSaving, setIsSaving] = useState(false);
   const token = session?.accessToken ?? "";
 
@@ -400,10 +414,19 @@ export function App() {
         form.oabNumber &&
         form.oabState &&
         form.mainAreaId &&
+        form.serviceStateId &&
+        form.serviceCityId &&
         form.officeCep &&
-        form.officeNumber
+        form.officeNumber &&
+        form.officeManualLat &&
+        form.officeManualLng
     );
-  }, [editingLawyerId, form, session]);
+  }, [form, session]);
+
+  const formCities = useMemo(
+    () => cities.filter((city) => city.active && city.stateId === form.serviceStateId),
+    [cities, form.serviceStateId]
+  );
 
   const areaById = useMemo(() => new Map(areas.map((area) => [area.id, area.name])), [areas]);
 
@@ -497,7 +520,26 @@ export function App() {
     if (activeView === "partners" && session && partners.length === 0 && !isLoadingPartners) {
       void handleLoadPartnerLogos();
     }
+    if ((activeView === "locations" || activeView === "newLawyer") && session && states.length === 0) {
+      void handleLoadLocations();
+    }
   }, [activeView, session]);
+
+  async function handleLoadLocations() {
+    if (!token) return;
+    try {
+      const [nextStates, nextCities] = await Promise.all([fetchAdminStates(token), fetchAdminCities(token)]);
+      setStates(nextStates);
+      setCities(nextCities);
+      setCityDraft((current) => ({ ...current, stateId: current.stateId || nextStates[0]?.id || "" }));
+      setLocationsFeedback({ kind: "success", message: "Catalogo de localidades atualizado." });
+    } catch (error) {
+      setLocationsFeedback({
+        kind: "error",
+        message: error instanceof AdminApiError ? error.message : "Falha ao carregar localidades."
+      });
+    }
+  }
 
   async function handleLoadLawyers(force = false) {
     if (!token) {
@@ -657,6 +699,9 @@ export function App() {
         "M4 5h16v10H4V5Zm2 2v8h12V7H6Zm1 10h10v2H7v-2Zm11.5-2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM8 9.5 10.2 12l2.1-2.6L16 14H6l2-4.5Z",
       operation:
         "M12 2 3 6v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V6l-9-4Zm0 3.2 6 2.7V12c0 3.8-2.5 7.2-6 8.4-3.5-1.2-6-4.6-6-8.4V7.9l6-2.7Z"
+      ,
+      locations:
+        "M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"
     };
 
     return (
@@ -670,6 +715,7 @@ export function App() {
     { view: "dashboard", label: "Dashboard" },
     { view: "lawyers", label: "Advogados" },
     { view: "newLawyer", label: "Novo Advogado" },
+    { view: "locations", label: "Estados e Cidades" },
     { view: "prayers", label: "Oracoes" },
     { view: "users", label: "Usuarios" },
     { view: "partners", label: "Parceiros" },
@@ -681,13 +727,16 @@ export function App() {
       ...current,
       [field]: value,
       ...(field === "mainAreaId" ? { secondaryAreaIds: current.secondaryAreaIds.filter((areaId) => areaId !== value) } : {})
+      ,...(field === "serviceStateId" ? { serviceCityId: "" } : {})
     }));
     if (field === "officeCep") {
       setAddress(null);
       setCoordinates(null);
+      setForm((current) => ({ ...current, officeManualLat: "", officeManualLng: "" }));
     }
     if (field === "officeNumber") {
       setCoordinates(null);
+      setForm((current) => ({ ...current, officeManualLat: "", officeManualLng: "" }));
     }
   }
 
@@ -725,7 +774,8 @@ export function App() {
   function startEditLawyer(lawyer: LawyerRecord) {
     setEditingLawyerId(lawyer.id);
     setSelectedLawyerId(lawyer.id);
-    setForm(lawyerToForm(lawyer));
+    const city = cities.find((item) => item.id === lawyer.serviceCityId);
+    setForm({ ...lawyerToForm(lawyer), serviceStateId: city?.stateId ?? "" });
     setAddress(
       lawyer.officeCity || lawyer.officeState
         ? {
@@ -752,6 +802,45 @@ export function App() {
     setActiveView("newLawyer");
   }
 
+  async function handleCreateState(event: FormEvent) {
+    event.preventDefault();
+    if (!token || !stateDraft.code.trim() || !stateDraft.name.trim()) return;
+    try {
+      await createAdminState(token, { ...stateDraft, active: true });
+      setStateDraft({ code: "", name: "" });
+      await handleLoadLocations();
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao criar estado." });
+    }
+  }
+
+  async function handleCreateCity(event: FormEvent) {
+    event.preventDefault();
+    const centerLat = Number(cityDraft.centerLat.replace(",", "."));
+    const centerLng = Number(cityDraft.centerLng.replace(",", "."));
+    if (!token || !cityDraft.stateId || !cityDraft.name.trim() || !Number.isFinite(centerLat) || !Number.isFinite(centerLng)) {
+      setLocationsFeedback({ kind: "error", message: "Informe estado, cidade e centroide validos." });
+      return;
+    }
+    try {
+      await createAdminCity(token, { stateId: cityDraft.stateId, name: cityDraft.name, active: true, center: { lat: centerLat, lng: centerLng } });
+      setCityDraft((current) => ({ ...current, name: "", centerLat: "", centerLng: "" }));
+      await handleLoadLocations();
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao criar cidade." });
+    }
+  }
+
+  async function toggleState(state: StateRecord) {
+    await updateAdminState(token, state.id, { active: !state.active });
+    await handleLoadLocations();
+  }
+
+  async function toggleCity(city: CityRecord) {
+    await updateAdminCity(token, city.id, { active: !city.active });
+    await handleLoadLocations();
+  }
+
   function handleNavigate(view: AdminView) {
     if (view === "newLawyer") {
       startNewLawyer();
@@ -766,23 +855,40 @@ export function App() {
       return;
     }
 
+    const requestId = ++geocodeRequestRef.current;
     setIsGeocoding(true);
     setFeedback({ kind: "info", message: "Consultando CEP pelo backend..." });
     try {
       const result = await geocodeCep(token, form.officeCep, form.officeNumber);
+      if (requestId !== geocodeRequestRef.current) return;
       setAddress(result.address);
       setCoordinates(result.coordinates);
+      setForm((current) => ({
+        ...current,
+        officeManualLat: result.coordinates ? result.coordinates.lat.toFixed(6) : "",
+        officeManualLng: result.coordinates ? result.coordinates.lng.toFixed(6) : ""
+      }));
       setFeedback({
         kind: result.coordinates ? "success" : "info",
         message: result.note ?? "CEP normalizado pelo backend."
       });
     } catch (error) {
+      if (requestId !== geocodeRequestRef.current) return;
       const message = error instanceof AdminApiError ? error.message : "Falha ao consultar CEP.";
       setFeedback({ kind: "error", message });
     } finally {
-      setIsGeocoding(false);
+      if (requestId === geocodeRequestRef.current) setIsGeocoding(false);
     }
   }
+
+  useEffect(() => {
+    if (!token || activeView !== "newLawyer" || form.officeCep.replace(/\D/g, "").length !== 8) return;
+    const timer = window.setTimeout(() => void handleGeocode(), 500);
+    return () => {
+      window.clearTimeout(timer);
+      geocodeRequestRef.current += 1;
+    };
+  }, [activeView, form.officeCep, form.officeNumber, token]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -1324,6 +1430,85 @@ export function App() {
           </section>
         ) : null}
 
+        {activeView === "locations" ? (
+          <section className="workspace" aria-label="Gestao de estados e cidades">
+            <div className="panel form-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Catalogo geografico</p>
+                  <h2>Estados e cidades</h2>
+                </div>
+                <button className="secondary-action" onClick={() => void handleLoadLocations()} type="button">Atualizar</button>
+              </div>
+
+              <form className="address-row" onSubmit={handleCreateState}>
+                <label className="field compact">
+                  <span>UF</span>
+                  <input maxLength={2} value={stateDraft.code} onChange={(event) => setStateDraft((current) => ({ ...current, code: event.target.value.toUpperCase() }))} />
+                </label>
+                <label className="field">
+                  <span>Estado</span>
+                  <input value={stateDraft.name} onChange={(event) => setStateDraft((current) => ({ ...current, name: event.target.value }))} />
+                </label>
+                <button type="submit">Cadastrar estado</button>
+              </form>
+
+              <div className="specialty-options">
+                {states.map((state) => (
+                  <button className="secondary-action" key={state.id} onClick={() => void toggleState(state)} type="button">
+                    {state.code} - {state.name} ({state.active ? "ativo" : "inativo"})
+                  </button>
+                ))}
+              </div>
+
+              <form className="visual-grid" onSubmit={handleCreateCity}>
+                <label className="field">
+                  <span>Estado da cidade</span>
+                  <select value={cityDraft.stateId} onChange={(event) => setCityDraft((current) => ({ ...current, stateId: event.target.value }))}>
+                    <option value="">Selecione</option>
+                    {states.filter((state) => state.active).map((state) => <option key={state.id} value={state.id}>{state.code} - {state.name}</option>)}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Cidade</span>
+                  <input value={cityDraft.name} onChange={(event) => setCityDraft((current) => ({ ...current, name: event.target.value }))} />
+                </label>
+                <div className="manual-location-panel wide">
+                  <OfficeLocationMap
+                    addressLabel={cityDraft.name || "Centroide da cidade"}
+                    coordinates={
+                      Number.isFinite(Number(cityDraft.centerLat.replace(",", "."))) && Number.isFinite(Number(cityDraft.centerLng.replace(",", "."))) && cityDraft.centerLat && cityDraft.centerLng
+                        ? { lat: Number(cityDraft.centerLat.replace(",", ".")), lng: Number(cityDraft.centerLng.replace(",", ".")), provider: "manual", precision: "manual", confidence: "high" }
+                        : null
+                    }
+                    manualLat={cityDraft.centerLat}
+                    manualLng={cityDraft.centerLng}
+                    onManualLocationChange={(centerLat, centerLng) => setCityDraft((current) => ({ ...current, centerLat, centerLng }))}
+                  />
+                  <div className="address-row">
+                    <label className="field"><span>Latitude centroide</span><input value={cityDraft.centerLat} onChange={(event) => setCityDraft((current) => ({ ...current, centerLat: event.target.value }))} /></label>
+                    <label className="field"><span>Longitude centroide</span><input value={cityDraft.centerLng} onChange={(event) => setCityDraft((current) => ({ ...current, centerLng: event.target.value }))} /></label>
+                    <button type="submit">Cadastrar cidade</button>
+                  </div>
+                </div>
+              </form>
+              {locationsFeedback.message ? <p className={`feedback ${locationsFeedback.kind}`}>{locationsFeedback.message}</p> : null}
+            </div>
+
+            <aside className="panel result-panel">
+              <p className="eyebrow">Cidades cadastradas</p>
+              <h2>{cities.length} registros</h2>
+              <div className="specialty-options">
+                {cities.map((city) => (
+                  <button className="secondary-action" key={city.id} onClick={() => void toggleCity(city)} type="button">
+                    {city.name} ({city.active ? "ativa" : "inativa"})
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </section>
+        ) : null}
+
         {activeView === "newLawyer" ? <section className="workspace">
           <form className="panel form-panel" onSubmit={handleSubmit}>
             <div className="panel-heading">
@@ -1403,6 +1588,31 @@ export function App() {
                   ))}
               </div>
             </fieldset>
+
+            <div className="form-grid">
+              <label className="field">
+                <span>Estado de atendimento</span>
+                <select value={form.serviceStateId} onChange={(event) => updateForm("serviceStateId", event.target.value)}>
+                  <option value="">Selecione o estado</option>
+                  {states.filter((state) => state.active).map((state) => <option key={state.id} value={state.id}>{state.code} - {state.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Cidade de atendimento</span>
+                <select disabled={!form.serviceStateId} value={form.serviceCityId} onChange={(event) => updateForm("serviceCityId", event.target.value)}>
+                  <option value="">Selecione a cidade</option>
+                  {formCities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+                </select>
+              </label>
+              <label className="toggle-row">
+                <input
+                  checked={form.availableForMatches}
+                  onChange={(event) => setForm((current) => ({ ...current, availableForMatches: event.target.checked }))}
+                  type="checkbox"
+                />
+                Disponivel para matches
+              </label>
+            </div>
 
             <div className="visual-grid">
               <div className="media-field">
@@ -1525,39 +1735,37 @@ export function App() {
               </button>
             </div>
 
-            {editingLawyerId ? (
-              <div className="manual-location-panel">
-                <OfficeLocationMap
-                  addressLabel={address ? formatAddress(address) : [selectedLawyer?.officeCity, selectedLawyer?.officeState].filter(Boolean).join("/")}
-                  coordinates={coordinates}
-                  manualLat={form.officeManualLat}
-                  manualLng={form.officeManualLng}
-                  onManualLocationChange={updateManualLocation}
-                />
+            <div className="manual-location-panel">
+              <OfficeLocationMap
+                addressLabel={address ? formatAddress(address) : [selectedLawyer?.officeCity, selectedLawyer?.officeState].filter(Boolean).join("/")}
+                coordinates={coordinates}
+                manualLat={form.officeManualLat}
+                manualLng={form.officeManualLng}
+                onManualLocationChange={updateManualLocation}
+              />
 
-                <div className="address-row manual-coordinates-row">
-                  <label className="field">
-                    <span>Latitude confirmada</span>
-                    <input
-                      inputMode="decimal"
-                      placeholder="-23.000000"
-                      value={form.officeManualLat}
-                      onChange={(event) => updateForm("officeManualLat", event.target.value)}
-                    />
-                  </label>
+              <div className="address-row manual-coordinates-row">
+                <label className="field">
+                  <span>Latitude confirmada</span>
+                  <input
+                    inputMode="decimal"
+                    placeholder="-23.000000"
+                    value={form.officeManualLat}
+                    onChange={(event) => updateForm("officeManualLat", event.target.value)}
+                  />
+                </label>
 
-                  <label className="field">
-                    <span>Longitude confirmada</span>
-                    <input
-                      inputMode="decimal"
-                      placeholder="-46.000000"
-                      value={form.officeManualLng}
-                      onChange={(event) => updateForm("officeManualLng", event.target.value)}
-                    />
-                  </label>
-                </div>
+                <label className="field">
+                  <span>Longitude confirmada</span>
+                  <input
+                    inputMode="decimal"
+                    placeholder="-46.000000"
+                    value={form.officeManualLng}
+                    onChange={(event) => updateForm("officeManualLng", event.target.value)}
+                  />
+                </label>
               </div>
-            ) : null}
+            </div>
 
             <footer className="form-actions">
               {editingLawyerId ? (

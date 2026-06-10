@@ -1,5 +1,10 @@
 # Admin Test Plan - Meu Advogado 2.0
 
+## Spec 012
+
+- Mapa create/edit, CEP automatico, resposta antiga ignorada e coordenada no POST/PATCH.
+- Estado/cidade dependentes, disponibilidade, bloqueios e gestao do catalogo/centroide.
+
 ## Harness Obrigatorio
 
 Comando principal:
