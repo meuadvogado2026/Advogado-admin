@@ -30,8 +30,6 @@ import {
   PartnerLogoFormState,
   PartnerLogoRecord,
   StateRecord,
-  updateAdminCity,
-  updateAdminState,
   updateAdminUserBlocked,
   updateLawyer,
   updateLawyerStatus,
@@ -320,6 +318,7 @@ export function App() {
   const [cityDraft, setCityDraft] = useState({ stateId: "", name: "" });
   const [statePage, setStatePage] = useState(1);
   const [cityPage, setCityPage] = useState(1);
+  const [expandedLocationList, setExpandedLocationList] = useState<"states" | "cities" | null>("cities");
   const [locationsFeedback, setLocationsFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
   const [lawyerSearch, setLawyerSearch] = useState("");
@@ -854,24 +853,6 @@ export function App() {
       await handleLoadLocations();
     } catch (error) {
       setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao criar cidade." });
-    }
-  }
-
-  async function toggleState(state: StateRecord) {
-    try {
-      await updateAdminState(token, state.id, { active: !state.active });
-      await handleLoadLocations();
-    } catch (error) {
-      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao atualizar estado." });
-    }
-  }
-
-  async function toggleCity(city: CityRecord) {
-    try {
-      await updateAdminCity(token, city.id, { active: !city.active });
-      await handleLoadLocations();
-    } catch (error) {
-      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao atualizar cidade." });
     }
   }
 
@@ -1533,6 +1514,25 @@ export function App() {
             </div>
 
             <aside className="panel result-panel">
+              <p className="eyebrow">Registros cadastrados</p>
+              <div className="location-tabs" aria-label="Abrir registros">
+                <button
+                  className={expandedLocationList === "states" ? "secondary-action active" : "secondary-action"}
+                  onClick={() => setExpandedLocationList((current) => current === "states" ? null : "states")}
+                  type="button"
+                >
+                  Estados ({states.length})
+                </button>
+                <button
+                  className={expandedLocationList === "cities" ? "secondary-action active" : "secondary-action"}
+                  onClick={() => setExpandedLocationList((current) => current === "cities" ? null : "cities")}
+                  type="button"
+                >
+                  Cidades ({cities.length})
+                </button>
+              </div>
+
+              {expandedLocationList === "states" ? (
               <div className="locations-list-section">
                 <p className="eyebrow">Estados cadastrados</p>
                 <h2>{states.length} registros</h2>
@@ -1544,17 +1544,15 @@ export function App() {
                         <span>{statusLabel(state.active, "Ativo", "Inativo")}</span>
                       </div>
                       <div className="location-record-actions">
-                        <button className="secondary-action" onClick={() => void toggleState(state)} type="button">
-                          {state.active ? "Desativar" : "Ativar"}
-                        </button>
                         <button
-                          className="danger-action"
+                          aria-label={`Apagar estado ${state.code} - ${state.name}`}
+                          className="icon-danger-action"
                           disabled={cities.some((city) => city.stateId === state.id && city.active)}
                           onClick={() => void handleDeleteState(state)}
                           title={cities.some((city) => city.stateId === state.id && city.active) ? "Desative ou apague as cidades ativas antes." : "Apagar estado"}
                           type="button"
                         >
-                          Apagar
+                          ×
                         </button>
                       </div>
                     </div>
@@ -1568,7 +1566,9 @@ export function App() {
                   onPrevious={() => setStatePage((current) => Math.max(current - 1, 1))}
                 />
               </div>
+              ) : null}
 
+              {expandedLocationList === "cities" ? (
               <div className="locations-list-section">
                 <p className="eyebrow">Cidades cadastradas</p>
                 <h2>{cities.length} registros</h2>
@@ -1580,11 +1580,14 @@ export function App() {
                         <span>{statusLabel(city.active, "Ativa", "Inativa")}</span>
                       </div>
                       <div className="location-record-actions">
-                        <button className="secondary-action" onClick={() => void toggleCity(city)} type="button">
-                          {city.active ? "Desativar" : "Ativar"}
-                        </button>
-                        <button className="danger-action" onClick={() => void handleDeleteCity(city)} type="button">
-                          Apagar
+                        <button
+                          aria-label={`Apagar cidade ${city.name}`}
+                          className="icon-danger-action"
+                          onClick={() => void handleDeleteCity(city)}
+                          title="Apagar cidade"
+                          type="button"
+                        >
+                          ×
                         </button>
                       </div>
                     </div>
@@ -1598,6 +1601,7 @@ export function App() {
                   onPrevious={() => setCityPage((current) => Math.max(current - 1, 1))}
                 />
               </div>
+              ) : null}
             </aside>
           </section>
         ) : null}

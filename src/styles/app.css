@@ -326,11 +326,39 @@ button:disabled {
   min-width: 146px;
 }
 
-.danger-action {
+.danger-action,
+.icon-danger-action {
   background: rgba(255, 107, 107, 0.1);
   border-color: rgba(255, 107, 107, 0.28);
   color: #ffb3b3;
   min-width: 96px;
+}
+
+.icon-danger-action {
+  border-radius: 999px;
+  font-size: 24px;
+  line-height: 1;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  width: 40px;
+}
+
+.location-tabs {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 4px;
+}
+
+.location-tabs .secondary-action {
+  min-width: 0;
+}
+
+.location-tabs .secondary-action.active {
+  background: rgba(244, 210, 100, 0.14);
+  border-color: rgba(244, 210, 100, 0.5);
+  color: var(--gold);
 }
 
 .kpi-grid {
@@ -995,10 +1023,9 @@ textarea {
 }
 
 .location-record-actions .secondary-action,
-.location-record-actions .danger-action {
+.location-record-actions .danger-action,
+.location-record-actions .icon-danger-action {
   min-height: 40px;
-  min-width: 92px;
-  padding: 0 12px;
 }
 
 .user-row {

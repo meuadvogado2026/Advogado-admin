@@ -9,6 +9,9 @@
   status e acoes separadas. Cidade pode ser apagada pelo painel; estado so habilita
   apagar quando nao possui cidade ativa, mantendo o backend como autoridade final para
   vinculos. Gates admin: contratos, typecheck, build e harness OK.
+- Ajuste visual em 2026-06-10: o painel de registros agora abre `Estados` e `Cidades`
+  por botoes separados e cada item exibe apenas um `X` para exclusao. Gates admin:
+  contratos, typecheck, build e harness OK.
 
 CEP automatico, mapa create/edit do escritorio, coordenada final, seletores dependentes
 e gestao simples de estados/cidades implementados. A tela de estados/cidades nao usa
