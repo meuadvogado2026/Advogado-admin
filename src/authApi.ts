@@ -28,6 +28,10 @@ type SupabasePasswordResponse = {
 async function parseApiJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      clearStoredSession();
+    }
+
     const message = data?.error?.message ?? "Falha ao validar sessao admin.";
     throw new AdminApiError(message, response.status);
   }
@@ -89,6 +93,8 @@ export async function loginAdmin(email: string, password: string): Promise<Admin
 }
 
 export function loadStoredSession(): AdminSession | null {
+  if (typeof window === "undefined") return null;
+
   try {
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
@@ -101,9 +107,11 @@ export function loadStoredSession(): AdminSession | null {
 }
 
 export function storeSession(session: AdminSession) {
+  if (typeof window === "undefined") return;
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
 }
 
 export function clearStoredSession() {
+  if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_STORAGE_KEY);
 }

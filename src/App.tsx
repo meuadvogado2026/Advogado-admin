@@ -29,6 +29,7 @@ import {
   LawyerStatus,
   PartnerLogoFormState,
   PartnerLogoRecord,
+  PaginationMeta,
   StateRecord,
   updateAdminUserBlocked,
   updateLawyer,
@@ -68,6 +69,7 @@ const CACHE_TTL_MS = 45_000;
 const LAWYERS_PAGE_SIZE = 8;
 const PRAYERS_PAGE_SIZE = 6;
 const USERS_PAGE_SIZE = 8;
+const PARTNERS_PAGE_SIZE = 8;
 const STATES_PAGE_SIZE = 5;
 const CITIES_PAGE_SIZE = 8;
 
@@ -321,6 +323,7 @@ export function App() {
   const [lawyerStatusFilter, setLawyerStatusFilter] = useState<"all" | LawyerStatus>("all");
   const [lawyersFeedback, setLawyersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingLawyers, setIsLoadingLawyers] = useState(false);
+  const [lawyersPagination, setLawyersPagination] = useState<PaginationMeta | null>(null);
   const [isUpdatingLawyer, setIsUpdatingLawyer] = useState(false);
   const [invitingLawyerId, setInvitingLawyerId] = useState<string | null>(null);
   const [editingLawyerId, setEditingLawyerId] = useState<string | null>(null);
@@ -330,6 +333,7 @@ export function App() {
   const [prayerStatusFilter, setPrayerStatusFilter] = useState<"all" | AdminPrayerRequest["status"]>("all");
   const [prayersFeedback, setPrayersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingPrayers, setIsLoadingPrayers] = useState(false);
+  const [prayersPagination, setPrayersPagination] = useState<PaginationMeta | null>(null);
   const [updatingPrayerId, setUpdatingPrayerId] = useState<string | null>(null);
   const [prayerPage, setPrayerPage] = useState(1);
   const [prayersLoadedAt, setPrayersLoadedAt] = useState(0);
@@ -338,6 +342,7 @@ export function App() {
   const [userSearch, setUserSearch] = useState("");
   const [usersFeedback, setUsersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [usersPagination, setUsersPagination] = useState<PaginationMeta | null>(null);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [userPage, setUserPage] = useState(1);
   const [usersLoadedAt, setUsersLoadedAt] = useState(0);
@@ -346,8 +351,11 @@ export function App() {
   const [partnerForm, setPartnerForm] = useState<PartnerLogoFormState>(emptyPartnerLogoForm);
   const [partnersFeedback, setPartnersFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [isLoadingPartners, setIsLoadingPartners] = useState(false);
+  const [partnersPagination, setPartnersPagination] = useState<PaginationMeta | null>(null);
   const [isSavingPartner, setIsSavingPartner] = useState(false);
   const [isUploadingPartnerLogo, setIsUploadingPartnerLogo] = useState(false);
+  const [partnerPage, setPartnerPage] = useState(1);
+  const [partnersLoadedAt, setPartnersLoadedAt] = useState(0);
   const [form, setForm] = useState<LawyerFormState>(emptyLawyerForm);
   const [address, setAddress] = useState<CepAddress | null>(null);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
@@ -434,6 +442,9 @@ export function App() {
   );
 
   const areaById = useMemo(() => new Map(areas.map((area) => [area.id, area.name])), [areas]);
+  const hasLawyerFilters = lawyerSearch.trim().length > 0 || lawyerStatusFilter !== "all";
+  const hasPrayerFilters = prayerStatusFilter !== "all";
+  const hasUserFilters = userSearch.trim().length > 0;
 
   const filteredLawyers = useMemo(() => {
     const query = lawyerSearch.trim().toLowerCase();
@@ -457,6 +468,10 @@ export function App() {
     () => paginate(filteredLawyers, lawyerPage, LAWYERS_PAGE_SIZE),
     [filteredLawyers, lawyerPage]
   );
+  const visibleLawyers = lawyers;
+  const lawyersPageInfo = !lawyersPagination
+    ? { page: pagedLawyers.page, totalItems: filteredLawyers.length, totalPages: pagedLawyers.totalPages }
+    : { page: lawyersPagination.page, totalItems: lawyersPagination.total, totalPages: lawyersPagination.totalPages };
 
   const filteredPrayerRequests = useMemo(
     () =>
@@ -470,12 +485,21 @@ export function App() {
     () => paginate(filteredPrayerRequests, prayerPage, PRAYERS_PAGE_SIZE),
     [filteredPrayerRequests, prayerPage]
   );
+  const visiblePrayerRequests = prayerRequests;
+  const prayersPageInfo = !prayersPagination
+    ? { page: pagedPrayerRequests.page, totalItems: filteredPrayerRequests.length, totalPages: pagedPrayerRequests.totalPages }
+    : { page: prayersPagination.page, totalItems: prayersPagination.total, totalPages: prayersPagination.totalPages };
 
   const prayerStats = useMemo(() => {
+    if (prayersPagination) {
+      const unreadOnPage = prayerRequests.filter((request) => request.status === "received").length;
+      const readOnPage = prayerRequests.length - unreadOnPage;
+      return { unread: unreadOnPage, read: readOnPage, total: prayersPagination.total };
+    }
     const unread = prayerRequests.filter((request) => request.status === "received").length;
     const read = prayerRequests.length - unread;
     return { unread, read, total: prayerRequests.length };
-  }, [prayerRequests]);
+  }, [prayerRequests, prayersPagination]);
 
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLowerCase();
@@ -496,6 +520,14 @@ export function App() {
     () => paginate(filteredUsers, userPage, USERS_PAGE_SIZE),
     [filteredUsers, userPage]
   );
+  const visibleUsers = users;
+  const usersPageInfo = !usersPagination
+    ? { page: pagedUsers.page, totalItems: filteredUsers.length, totalPages: pagedUsers.totalPages }
+    : { page: usersPagination.page, totalItems: usersPagination.total, totalPages: usersPagination.totalPages };
+
+  const partnersPageInfo = partnersPagination
+    ? { page: partnersPagination.page, totalItems: partnersPagination.total, totalPages: partnersPagination.totalPages }
+    : { page: partnerPage, totalItems: partners.length, totalPages: Math.max(1, Math.ceil(partners.length / PARTNERS_PAGE_SIZE)) };
 
   const pagedStates = useMemo(
     () => paginate(states, statePage, STATES_PAGE_SIZE),
@@ -509,15 +541,21 @@ export function App() {
 
   useEffect(() => {
     setLawyerPage(1);
-  }, [lawyerSearch, lawyerStatusFilter]);
+    if (activeView !== "lawyers" || !session) return;
+    void handleLoadLawyers(true, 1);
+  }, [activeView, hasLawyerFilters, lawyerSearch, lawyerStatusFilter, session]);
 
   useEffect(() => {
     setPrayerPage(1);
-  }, [prayerStatusFilter]);
+    if (activeView !== "prayers" || !session) return;
+    void handleLoadPrayerRequests(true, 1);
+  }, [activeView, hasPrayerFilters, prayerStatusFilter, session]);
 
   useEffect(() => {
     setUserPage(1);
-  }, [userSearch]);
+    if (activeView !== "users" || !session) return;
+    void handleLoadUsers(true, 1);
+  }, [activeView, hasUserFilters, session, userSearch]);
 
   useEffect(() => {
     setStatePage(1);
@@ -564,27 +602,44 @@ export function App() {
     }
   }
 
-  async function handleLoadLawyers(force = false) {
+  async function handleLoadLawyers(force = false, page = lawyerPage) {
     if (!token) {
       setLawyersFeedback({ kind: "error", message: "Entre como admin antes de listar advogados." });
       return;
     }
-    if (!force && lawyers.length > 0 && Date.now() - lawyersLoadedAt < CACHE_TTL_MS) {
+    const requestedPage = Math.max(1, page);
+    if (
+      !force &&
+      lawyers.length > 0 &&
+      Date.now() - lawyersLoadedAt < CACHE_TTL_MS &&
+      lawyersPagination?.page === requestedPage
+    ) {
       setLawyersFeedback({ kind: "success", message: "Listagem restaurada do cache da sessao." });
       return;
     }
 
     setIsLoadingLawyers(true);
-    setLawyersFeedback({ kind: "info", message: "Carregando advogados pelo backend..." });
+    setLawyersFeedback({ kind: "info", message: hasLawyerFilters ? "Carregando advogados filtrados..." : "Carregando pagina de advogados..." });
     try {
-      const response = await fetchLawyers(token);
+      const response = await fetchLawyers(token, {
+        page: requestedPage,
+        pageSize: LAWYERS_PAGE_SIZE,
+        ...(lawyerSearch.trim() ? { search: lawyerSearch } : {}),
+        ...(lawyerStatusFilter !== "all" ? { status: lawyerStatusFilter } : {})
+      });
       setLawyers(response.lawyers);
+      setLawyersPagination(response.pagination ?? null);
+      setLawyerPage(response.pagination?.page ?? 1);
       setLawyersLoadedAt(Date.now());
-      setSelectedLawyerId((current) => current ?? response.lawyers[0]?.id ?? null);
+      setSelectedLawyerId((current) =>
+        response.lawyers.some((lawyer) => lawyer.id === current) ? current : response.lawyers[0]?.id ?? null
+      );
       setLawyersFeedback({
         kind: response.lawyers.length ? "success" : "info",
         message: response.lawyers.length
-          ? `Listagem carregada via ${response.persistence}.`
+          ? response.pagination
+            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
+            : `Listagem carregada via ${response.persistence}.`
           : "Nenhum advogado cadastrado ainda."
       });
     } catch (error) {
@@ -595,26 +650,40 @@ export function App() {
     }
   }
 
-  async function handleLoadPrayerRequests(force = false) {
+  async function handleLoadPrayerRequests(force = false, page = prayerPage) {
     if (!token) {
       setPrayersFeedback({ kind: "error", message: "Entre como admin antes de listar pedidos." });
       return;
     }
-    if (!force && prayerRequests.length > 0 && Date.now() - prayersLoadedAt < CACHE_TTL_MS) {
+    const requestedPage = Math.max(1, page);
+    if (
+      !force &&
+      prayerRequests.length > 0 &&
+      Date.now() - prayersLoadedAt < CACHE_TTL_MS &&
+      prayersPagination?.page === requestedPage
+    ) {
       setPrayersFeedback({ kind: "success", message: "Pedidos restaurados do cache da sessao." });
       return;
     }
 
     setIsLoadingPrayers(true);
-    setPrayersFeedback({ kind: "info", message: "Carregando pedidos de oracao..." });
+    setPrayersFeedback({ kind: "info", message: hasPrayerFilters ? "Carregando pedidos filtrados..." : "Carregando pagina de pedidos..." });
     try {
-      const response = await fetchPrayerRequests(token);
+      const response = await fetchPrayerRequests(token, {
+        page: requestedPage,
+        pageSize: PRAYERS_PAGE_SIZE,
+        ...(prayerStatusFilter !== "all" ? { status: prayerStatusFilter } : {})
+      });
       setPrayerRequests(response.requests);
+      setPrayersPagination(response.pagination ?? null);
+      setPrayerPage(response.pagination?.page ?? 1);
       setPrayersLoadedAt(Date.now());
       setPrayersFeedback({
         kind: response.requests.length ? "success" : "info",
         message: response.requests.length
-          ? `Pedidos carregados via ${response.persistence}.`
+          ? response.pagination
+            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
+            : `Pedidos carregados via ${response.persistence}.`
           : "Nenhum pedido de oracao recebido ainda."
       });
     } catch (error) {
@@ -625,26 +694,44 @@ export function App() {
     }
   }
 
-  async function handleLoadUsers(force = false) {
+  async function handleLoadUsers(force = false, page = userPage) {
     if (!token) {
       setUsersFeedback({ kind: "error", message: "Entre como admin antes de listar usuarios." });
       return;
     }
-    if (!force && users.length > 0 && Date.now() - usersLoadedAt < CACHE_TTL_MS) {
+    const requestedPage = Math.max(1, page);
+    if (
+      !force &&
+      users.length > 0 &&
+      Date.now() - usersLoadedAt < CACHE_TTL_MS &&
+      usersPagination?.page === requestedPage
+    ) {
       setUsersFeedback({ kind: "success", message: "Usuarios restaurados do cache da sessao." });
       return;
     }
 
     setIsLoadingUsers(true);
-    setUsersFeedback({ kind: "info", message: "Carregando usuarios cadastrados..." });
+    setUsersFeedback({ kind: "info", message: hasUserFilters ? "Carregando usuarios filtrados..." : "Carregando pagina de usuarios..." });
     try {
-      const response = await fetchAdminUsers(token);
+      const response = await fetchAdminUsers(token, {
+        page: requestedPage,
+        pageSize: USERS_PAGE_SIZE,
+        ...(userSearch.trim() ? { search: userSearch } : {})
+      });
       setUsers(response.users);
+      setUsersPagination(response.pagination ?? null);
+      setUserPage(response.pagination?.page ?? 1);
       setUsersLoadedAt(Date.now());
-      setSelectedUserId((current) => current ?? response.users[0]?.id ?? null);
+      setSelectedUserId((current) =>
+        response.users.some((user) => user.id === current) ? current : response.users[0]?.id ?? null
+      );
       setUsersFeedback({
         kind: response.users.length ? "success" : "info",
-        message: response.users.length ? `Usuarios carregados via ${response.persistence}.` : "Nenhum usuario cadastrado."
+        message: response.users.length
+          ? response.pagination
+            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
+            : `Usuarios carregados via ${response.persistence}.`
+          : "Nenhum usuario cadastrado."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao listar usuarios.";
@@ -654,21 +741,36 @@ export function App() {
     }
   }
 
-  async function handleLoadPartnerLogos() {
+  async function handleLoadPartnerLogos(force = false, page = partnerPage) {
     if (!token) {
       setPartnersFeedback({ kind: "error", message: "Entre como admin antes de listar parceiros." });
       return;
     }
+    const requestedPage = Math.max(1, page);
+    if (
+      !force &&
+      partners.length > 0 &&
+      Date.now() - partnersLoadedAt < CACHE_TTL_MS &&
+      partnersPagination?.page === requestedPage
+    ) {
+      setPartnersFeedback({ kind: "success", message: "Parceiros restaurados do cache da sessao." });
+      return;
+    }
 
     setIsLoadingPartners(true);
-    setPartnersFeedback({ kind: "info", message: "Carregando logos de parceiros..." });
+    setPartnersFeedback({ kind: "info", message: "Carregando pagina de parceiros..." });
     try {
-      const response = await fetchPartnerLogos(token);
+      const response = await fetchPartnerLogos(token, { page: requestedPage, pageSize: PARTNERS_PAGE_SIZE });
       setPartners(response.partners);
+      setPartnersPagination(response.pagination ?? null);
+      setPartnerPage(response.pagination?.page ?? requestedPage);
+      setPartnersLoadedAt(Date.now());
       setPartnersFeedback({
         kind: response.partners.length ? "success" : "info",
         message: response.partners.length
-          ? `Parceiros carregados via ${response.persistence}.`
+          ? response.pagination
+            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
+            : `Parceiros carregados via ${response.persistence}.`
           : "Nenhum parceiro cadastrado ainda."
       });
     } catch (error) {
@@ -1094,9 +1196,10 @@ export function App() {
     setIsSavingPartner(true);
     setPartnersFeedback({ kind: "info", message: "Salvando parceiro..." });
     try {
-      const response = await createPartnerLogo(token, partnerForm);
-      setPartners((current) => [response.partner, ...current]);
+      await createPartnerLogo(token, partnerForm);
       setPartnerForm(emptyPartnerLogoForm);
+      setPartnerPage(1);
+      await handleLoadPartnerLogos(true, 1);
       setPartnersFeedback({ kind: "success", message: "Parceiro salvo com logo renderizada no painel." });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao salvar parceiro.";
@@ -1277,7 +1380,7 @@ export function App() {
                   <h2>Gestao operacional</h2>
                 </div>
                 <div className="toolbar-actions">
-                  <button className="secondary-action" disabled={isLoadingLawyers} onClick={() => void handleLoadLawyers(true)} type="button">
+                  <button className="secondary-action" disabled={isLoadingLawyers} onClick={() => void handleLoadLawyers(true, lawyerPage)} type="button">
                     {isLoadingLawyers ? "Atualizando" : "Atualizar"}
                   </button>
                   <button className="header-action" onClick={startNewLawyer} type="button">
@@ -1319,7 +1422,7 @@ export function App() {
                   <p className="empty-state">Nenhum advogado encontrado para os filtros atuais.</p>
                 ) : null}
                 {!isLoadingLawyers
-                  ? pagedLawyers.items.map((lawyer) => (
+                  ? visibleLawyers.map((lawyer) => (
                       <button
                         className={`lawyer-row ${selectedLawyer?.id === lawyer.id ? "selected" : ""}`}
                         key={lawyer.id}
@@ -1346,11 +1449,19 @@ export function App() {
                   : null}
               </div>
               <Pagination
-                page={pagedLawyers.page}
-                totalItems={filteredLawyers.length}
-                totalPages={pagedLawyers.totalPages}
-                onNext={() => setLawyerPage((current) => Math.min(current + 1, pagedLawyers.totalPages))}
-                onPrevious={() => setLawyerPage((current) => Math.max(current - 1, 1))}
+                page={lawyersPageInfo.page}
+                totalItems={lawyersPageInfo.totalItems}
+                totalPages={lawyersPageInfo.totalPages}
+                onNext={() => {
+                  const nextPage = Math.min(lawyersPageInfo.page + 1, lawyersPageInfo.totalPages);
+                  setLawyerPage(nextPage);
+                  void handleLoadLawyers(false, nextPage);
+                }}
+                onPrevious={() => {
+                  const previousPage = Math.max(lawyersPageInfo.page - 1, 1);
+                  setLawyerPage(previousPage);
+                  void handleLoadLawyers(false, previousPage);
+                }}
               />
             </section>
 
@@ -1923,7 +2034,7 @@ export function App() {
                     {status === "all" ? "Todas" : status === "received" ? "Recebidas" : "Lidas"}
                   </button>
                 ))}
-                <button className="secondary-action" disabled={isLoadingPrayers} onClick={() => void handleLoadPrayerRequests(true)} type="button">
+                <button className="secondary-action" disabled={isLoadingPrayers} onClick={() => void handleLoadPrayerRequests(true, prayerPage)} type="button">
                   {isLoadingPrayers ? "Atualizando" : "Atualizar"}
                 </button>
               </div>
@@ -1937,7 +2048,7 @@ export function App() {
                 <p className="empty-state">Nenhum pedido de oracao recebido ainda.</p>
               ) : null}
               {!isLoadingPrayers
-                ? pagedPrayerRequests.items.map((request) => (
+                ? visiblePrayerRequests.map((request) => (
                     <article className={`request-item ${request.status === "read" ? "read" : ""}`} key={request.id}>
                       <div className="request-meta">
                         <span className={`status-pill ${request.status === "read" ? "read-pill" : ""}`}>
@@ -1971,11 +2082,19 @@ export function App() {
                 : null}
             </div>
             <Pagination
-              page={pagedPrayerRequests.page}
-              totalItems={filteredPrayerRequests.length}
-              totalPages={pagedPrayerRequests.totalPages}
-              onNext={() => setPrayerPage((current) => Math.min(current + 1, pagedPrayerRequests.totalPages))}
-              onPrevious={() => setPrayerPage((current) => Math.max(current - 1, 1))}
+              page={prayersPageInfo.page}
+              totalItems={prayersPageInfo.totalItems}
+              totalPages={prayersPageInfo.totalPages}
+              onNext={() => {
+                const nextPage = Math.min(prayersPageInfo.page + 1, prayersPageInfo.totalPages);
+                setPrayerPage(nextPage);
+                void handleLoadPrayerRequests(false, nextPage);
+              }}
+              onPrevious={() => {
+                const previousPage = Math.max(prayersPageInfo.page - 1, 1);
+                setPrayerPage(previousPage);
+                void handleLoadPrayerRequests(false, previousPage);
+              }}
             />
           </section>
         ) : null}
@@ -1988,7 +2107,7 @@ export function App() {
                   <p className="eyebrow">Parceiros</p>
                   <h2>Adicionar logo</h2>
                 </div>
-                <button className="secondary-action" disabled={isLoadingPartners} onClick={handleLoadPartnerLogos} type="button">
+                <button className="secondary-action" disabled={isLoadingPartners} onClick={() => void handleLoadPartnerLogos(true, partnerPage)} type="button">
                   {isLoadingPartners ? "Atualizando" : "Atualizar"}
                 </button>
               </div>
@@ -2075,6 +2194,21 @@ export function App() {
                     ))
                   : null}
               </div>
+              <Pagination
+                page={partnersPageInfo.page}
+                totalItems={partnersPageInfo.totalItems}
+                totalPages={partnersPageInfo.totalPages}
+                onNext={() => {
+                  const nextPage = Math.min(partnersPageInfo.page + 1, partnersPageInfo.totalPages);
+                  setPartnerPage(nextPage);
+                  void handleLoadPartnerLogos(false, nextPage);
+                }}
+                onPrevious={() => {
+                  const previousPage = Math.max(partnersPageInfo.page - 1, 1);
+                  setPartnerPage(previousPage);
+                  void handleLoadPartnerLogos(false, previousPage);
+                }}
+              />
             </aside>
           </section>
         ) : null}
@@ -2087,7 +2221,7 @@ export function App() {
                   <p className="eyebrow">Usuarios</p>
                   <h2>Cadastros do app</h2>
                 </div>
-                <button className="secondary-action" disabled={isLoadingUsers} onClick={() => void handleLoadUsers(true)} type="button">
+                <button className="secondary-action" disabled={isLoadingUsers} onClick={() => void handleLoadUsers(true, userPage)} type="button">
                   {isLoadingUsers ? "Atualizando" : "Atualizar"}
                 </button>
               </div>
@@ -2109,7 +2243,7 @@ export function App() {
                   <p className="empty-state">Nenhum usuario encontrado.</p>
                 ) : null}
                 {!isLoadingUsers
-                  ? pagedUsers.items.map((user) => (
+                  ? visibleUsers.map((user) => (
                       <button
                         className={`lawyer-row user-row ${selectedUser?.id === user.id ? "selected" : ""}`}
                         key={user.id}
@@ -2132,11 +2266,19 @@ export function App() {
                   : null}
               </div>
               <Pagination
-                page={pagedUsers.page}
-                totalItems={filteredUsers.length}
-                totalPages={pagedUsers.totalPages}
-                onNext={() => setUserPage((current) => Math.min(current + 1, pagedUsers.totalPages))}
-                onPrevious={() => setUserPage((current) => Math.max(current - 1, 1))}
+                page={usersPageInfo.page}
+                totalItems={usersPageInfo.totalItems}
+                totalPages={usersPageInfo.totalPages}
+                onNext={() => {
+                  const nextPage = Math.min(usersPageInfo.page + 1, usersPageInfo.totalPages);
+                  setUserPage(nextPage);
+                  void handleLoadUsers(false, nextPage);
+                }}
+                onPrevious={() => {
+                  const previousPage = Math.max(usersPageInfo.page - 1, 1);
+                  setUserPage(previousPage);
+                  void handleLoadUsers(false, previousPage);
+                }}
               />
             </section>
 

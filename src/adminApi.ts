@@ -177,6 +177,18 @@ export type PartnerLogoFormState = {
   active: boolean;
 };
 
+export type PaginationRequest = {
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: string;
+};
+
+export type PaginationMeta = PaginationRequest & {
+  total: number;
+  totalPages: number;
+};
+
 export const emptyLawyerForm: LawyerFormState = {
   name: "",
   email: "",
@@ -391,10 +403,18 @@ export class AdminApiError extends Error {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
   (import.meta.env.PROD ? "https://advogado-back-production.up.railway.app" : "http://localhost:3333");
+const SESSION_STORAGE_KEY = "meu_advogado_admin_session";
+
+function clearStoredAdminSessionOnAuthFailure(status: number) {
+  if (status !== 401 && status !== 403) return;
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
+}
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    clearStoredAdminSessionOnAuthFailure(response.status);
     const message = data?.error?.message ?? "Falha ao chamar API admin.";
     throw new AdminApiError(message, response.status);
   }
@@ -412,6 +432,16 @@ function authOnlyHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`
   };
+}
+
+function paginationQuery(pagination?: PaginationRequest) {
+  if (!pagination) return "";
+  const params = new URLSearchParams();
+  params.set("page", String(pagination.page));
+  params.set("pageSize", String(pagination.pageSize));
+  if (pagination.search?.trim()) params.set("search", pagination.search.trim());
+  if (pagination.status?.trim()) params.set("status", pagination.status.trim());
+  return `?${params.toString()}`;
 }
 
 export async function fetchAreas(): Promise<LegalArea[]> {
@@ -542,11 +572,11 @@ export async function inviteLawyerAccess(token: string, lawyerId: string): Promi
   return parseJson<LawyerAccessResult>(response);
 }
 
-export async function fetchLawyers(token: string): Promise<{ lawyers: LawyerRecord[]; persistence: string }> {
-  const response = await fetch(`${API_BASE_URL}${apiContracts.adminLawyers}`, {
+export async function fetchLawyers(token: string, pagination?: PaginationRequest): Promise<{ lawyers: LawyerRecord[]; pagination?: PaginationMeta; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminLawyers}${paginationQuery(pagination)}`, {
     headers: authHeaders(token)
   });
-  return parseJson<{ lawyers: LawyerRecord[]; persistence: string }>(response);
+  return parseJson<{ lawyers: LawyerRecord[]; pagination?: PaginationMeta; persistence: string }>(response);
 }
 
 export async function updateLawyerStatus(token: string, lawyerId: string, status: LawyerStatus) {
@@ -573,11 +603,11 @@ export async function uploadLawyerImage(
   return parseJson<{ image: { url: string; path: string; contentType: string }; persistence: string }>(response);
 }
 
-export async function fetchPrayerRequests(token: string): Promise<{ requests: AdminPrayerRequest[]; persistence: string }> {
-  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPrayerRequests}`, {
+export async function fetchPrayerRequests(token: string, pagination?: PaginationRequest): Promise<{ requests: AdminPrayerRequest[]; pagination?: PaginationMeta; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPrayerRequests}${paginationQuery(pagination)}`, {
     headers: authHeaders(token)
   });
-  return parseJson<{ requests: AdminPrayerRequest[]; persistence: string }>(response);
+  return parseJson<{ requests: AdminPrayerRequest[]; pagination?: PaginationMeta; persistence: string }>(response);
 }
 
 export async function updatePrayerRequestStatus(token: string, requestId: string, status: AdminPrayerRequest["status"]) {
@@ -592,11 +622,11 @@ export async function updatePrayerRequestStatus(token: string, requestId: string
   return parseJson<{ request: AdminPrayerRequest }>(response);
 }
 
-export async function fetchAdminUsers(token: string): Promise<{ users: AdminUserRecord[]; persistence: string }> {
-  const response = await fetch(`${API_BASE_URL}${apiContracts.adminUsers}`, {
+export async function fetchAdminUsers(token: string, pagination?: PaginationRequest): Promise<{ users: AdminUserRecord[]; pagination?: PaginationMeta; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminUsers}${paginationQuery(pagination)}`, {
     headers: authHeaders(token)
   });
-  return parseJson<{ users: AdminUserRecord[]; persistence: string }>(response);
+  return parseJson<{ users: AdminUserRecord[]; pagination?: PaginationMeta; persistence: string }>(response);
 }
 
 export async function updateAdminUserBlocked(token: string, userId: string, blocked: boolean) {
@@ -608,11 +638,11 @@ export async function updateAdminUserBlocked(token: string, userId: string, bloc
   return parseJson<{ user: AdminUserRecord }>(response);
 }
 
-export async function fetchPartnerLogos(token: string): Promise<{ partners: PartnerLogoRecord[]; persistence: string }> {
-  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPartnerLogos}`, {
+export async function fetchPartnerLogos(token: string, pagination?: PaginationRequest): Promise<{ partners: PartnerLogoRecord[]; pagination?: PaginationMeta; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminPartnerLogos}${paginationQuery(pagination)}`, {
     headers: authHeaders(token)
   });
-  return parseJson<{ partners: PartnerLogoRecord[]; persistence: string }>(response);
+  return parseJson<{ partners: PartnerLogoRecord[]; pagination?: PaginationMeta; persistence: string }>(response);
 }
 
 export async function createPartnerLogo(token: string, form: PartnerLogoFormState) {

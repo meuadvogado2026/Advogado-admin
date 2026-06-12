@@ -15,6 +15,11 @@ if (
   !app.includes("login-logo") ||
   !app.includes("sidebar-logo") ||
   !app.includes("fetchLawyers") ||
+  !app.includes("...(lawyerSearch.trim() ? { search: lawyerSearch } : {})") ||
+  !app.includes("...(lawyerStatusFilter !== \"all\" ? { status: lawyerStatusFilter } : {})") ||
+  !app.includes("...(userSearch.trim() ? { search: userSearch } : {})") ||
+  !app.includes("...(prayerStatusFilter !== \"all\" ? { status: prayerStatusFilter } : {})") ||
+  !app.includes("fetchPartnerLogos(token, { page: requestedPage") ||
   !app.includes("handleStatusChange") ||
   !app.includes("Gestao operacional") ||
   app.includes("A listagem operacional completa fica para o proximo ciclo") ||

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   AdminApiError,
@@ -392,6 +393,68 @@ describe("admin contracts", () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it("can request paginated admin lists without changing the legacy response shape", async () => {
+    const originalFetch = globalThis.fetch;
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(String(input));
+      expect(init?.headers).toEqual({ Authorization: "Bearer redacted-admin-token", "Content-Type": "application/json" });
+      return new Response(
+        JSON.stringify({
+          lawyers: [],
+          users: [],
+          requests: [],
+          partners: [],
+          pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 },
+          persistence: "memory"
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as typeof fetch;
+
+    try {
+      await expect(fetchLawyers("redacted-admin-token", { page: 2, pageSize: 5 })).resolves.toMatchObject({
+        pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
+      });
+      await expect(fetchAdminUsers("redacted-admin-token", { page: 2, pageSize: 5 })).resolves.toMatchObject({
+        pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
+      });
+      await expect(fetchPrayerRequests("redacted-admin-token", { page: 2, pageSize: 5 })).resolves.toMatchObject({
+        pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
+      });
+      await expect(fetchPartnerLogos("redacted-admin-token", { page: 2, pageSize: 5 })).resolves.toMatchObject({
+        pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
+      });
+      await expect(fetchLawyers("redacted-admin-token", { page: 1, pageSize: 8, search: "Ana", status: "approved" })).resolves.toMatchObject({
+        pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
+      });
+      expect(calls).toEqual([
+        expect.stringContaining("/v1/admin/lawyers?page=2&pageSize=5"),
+        expect.stringContaining("/v1/admin/users?page=2&pageSize=5"),
+        expect.stringContaining("/v1/admin/prayer-requests?page=2&pageSize=5"),
+        expect.stringContaining("/v1/admin/partner-logos?page=2&pageSize=5"),
+        expect.stringContaining("/v1/admin/lawyers?page=1&pageSize=8&search=Ana&status=approved")
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("uses server-side pagination by default in large admin list views", () => {
+    const app = readFileSync("src/App.tsx", "utf8");
+
+    expect(app).toContain("fetchLawyers(token, {");
+    expect(app).toContain("...(lawyerSearch.trim() ? { search: lawyerSearch } : {})");
+    expect(app).toContain("...(lawyerStatusFilter !== \"all\" ? { status: lawyerStatusFilter } : {})");
+    expect(app).toContain("fetchPrayerRequests(token, {");
+    expect(app).toContain("...(prayerStatusFilter !== \"all\" ? { status: prayerStatusFilter } : {})");
+    expect(app).toContain("fetchAdminUsers(token, {");
+    expect(app).toContain("...(userSearch.trim() ? { search: userSearch } : {})");
+    expect(app).toContain("fetchPartnerLogos(token, { page: requestedPage, pageSize: PARTNERS_PAGE_SIZE })");
+    expect(app).toContain("const hasLawyerFilters");
+    expect(app).not.toContain("ListMode");
   });
 
   it("updates lawyer status through PATCH without exposing coordinates", async () => {
