@@ -20,9 +20,12 @@ if (
   !app.includes("...(userSearch.trim() ? { search: userSearch } : {})") ||
   !app.includes("...(prayerStatusFilter !== \"all\" ? { status: prayerStatusFilter } : {})") ||
   !app.includes("fetchPartnerLogos(token, { page: requestedPage") ||
+  !app.includes("fetchBenefits(token, { page: requestedPage") ||
   !app.includes("handleStatusChange") ||
+  !app.includes("Beneficios cadastrados") ||
   !app.includes("Gestao operacional") ||
   app.includes("A listagem operacional completa fica para o proximo ciclo") ||
+  app.includes("carregada via") ||
   app.includes('href="#')
 ) {
   throw new Error("Smoke admin falhou. Gestao real, views, icones ou logo arredondada ausentes.");

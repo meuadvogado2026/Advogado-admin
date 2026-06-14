@@ -230,6 +230,7 @@ textarea {
 .filters-row {
   align-items: end;
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
 }
 
@@ -241,7 +242,12 @@ textarea {
   flex: 1;
 }
 
+.filters-row .field {
+  min-width: 0;
+}
+
 .compact-filter {
+  flex: 0 1 180px;
   max-width: 200px;
 }
 
@@ -445,6 +451,11 @@ dt,
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.specialty-options.simple-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .specialty-chip,
@@ -719,9 +730,14 @@ textarea {
 
 .lawyers-list,
 .request-list,
-.partner-list {
+.partner-list,
+.benefit-list {
   display: grid;
   gap: 12px;
+}
+
+.request-list {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .lawyer-row {
@@ -792,6 +808,10 @@ textarea {
 
 .lawyer-meta {
   font-size: 13px;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-dot {
@@ -833,21 +853,31 @@ textarea {
 }
 
 .request-item,
-.partner-item {
+.partner-item,
+.benefit-item {
   background: #0b1628;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
 .request-item {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
+  background:
+    linear-gradient(145deg, rgba(244, 210, 100, 0.08), transparent 34%),
+    #0b1628;
+  border-color: rgba(244, 210, 100, 0.18);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 224px;
+  padding: 20px;
   position: relative;
 }
 
 .request-item.read {
-  background: rgba(34, 121, 108, 0.12);
+  background:
+    linear-gradient(145deg, rgba(37, 223, 143, 0.1), transparent 38%),
+    rgba(34, 121, 108, 0.12);
   border-color: rgba(37, 223, 143, 0.18);
 }
 
@@ -892,6 +922,7 @@ textarea {
 
 .request-footer {
   align-items: end;
+  margin-top: auto;
 }
 
 .prayer-read-action {
@@ -903,14 +934,19 @@ textarea {
 
 .prayers-workspace {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .prayer-hero {
   align-items: center;
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(220px, 1fr) auto auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, auto);
+}
+
+.prayer-hero .toolbar-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
 }
 
 .prayer-stats {
@@ -972,6 +1008,22 @@ textarea {
   gap: 10px;
 }
 
+.result-panel .pagination-row {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.result-panel .pagination-row div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.result-panel .pagination-row .secondary-action {
+  min-width: 0;
+  width: 100%;
+}
+
 .locations-list-section {
   border-top: 1px solid var(--line);
   display: grid;
@@ -997,6 +1049,7 @@ textarea {
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px;
+  width: 100%;
 }
 
 .location-record strong,
@@ -1096,6 +1149,68 @@ textarea {
   min-width: 0;
 }
 
+.benefit-item {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 16px;
+}
+
+.benefit-item.inactive {
+  opacity: 0.68;
+}
+
+.benefit-item-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.benefit-item-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.benefit-item strong {
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.benefit-item p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.benefit-tags,
+.benefit-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.benefit-tags {
+  flex-wrap: wrap;
+}
+
+.benefit-tags small {
+  background: rgba(244, 210, 100, 0.1);
+  border: 1px solid rgba(244, 210, 100, 0.18);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.benefit-actions .secondary-action {
+  min-height: 40px;
+  min-width: 82px;
+}
+
 .empty-state {
   line-height: 1.5;
   margin: 0;
@@ -1146,7 +1261,7 @@ dd {
   color: var(--gold);
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1480px) {
   .admin-shell {
     grid-template-columns: 270px minmax(0, 1fr);
   }
@@ -1155,13 +1270,48 @@ dd {
     font-size: 20px;
   }
 
-  .workspace,
+  .lawyers-workspace {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .lawyers-workspace .panel-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .lawyers-workspace .toolbar-actions {
+    margin-left: auto;
+  }
+
+  .lawyers-workspace .toolbar-actions .secondary-action {
+    min-width: 126px;
+  }
+
+  .lawyer-row {
+    gap: 10px;
+    grid-template-columns: 8px 40px minmax(140px, 1fr) minmax(90px, 120px) auto;
+    padding: 12px;
+  }
+
+  .avatar-mini {
+    height: 40px;
+    width: 40px;
+  }
+}
+
+@media (max-width: 1280px) {
   .lawyers-workspace {
     grid-template-columns: 1fr;
   }
 
   .detail-panel {
     position: static;
+  }
+}
+
+@media (max-width: 1180px) {
+  .workspace {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1220,6 +1370,7 @@ dd {
   .pagination-row,
   .lawyer-row,
   .location-record,
+  .benefit-item,
   .user-row {
     display: grid;
     grid-template-columns: 1fr;
@@ -1243,6 +1394,7 @@ dd {
   .prayer-hero .toolbar-actions,
   .office-map-actions,
   .location-record-actions,
+  .benefit-actions,
   .pagination-row div {
     display: grid;
     grid-template-columns: 1fr;

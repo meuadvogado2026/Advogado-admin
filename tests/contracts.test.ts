@@ -2,15 +2,20 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   AdminApiError,
+  buildBenefitPayload,
   buildPartnerLogoPayload,
   buildLawyerPayload,
   buildLawyerUpdatePayload,
   buildPrayerRequestStatusPatch,
   buildLawyerStatusPatch,
   buildUserBlockedPatch,
+  createBenefit,
   createPartnerLogo,
+  deleteBenefit,
+  emptyBenefitForm,
   emptyLawyerForm,
   emptyPartnerLogoForm,
+  fetchBenefits,
   fetchAdminUsers,
   fetchStates,
   fetchStateCities,
@@ -18,6 +23,7 @@ import {
   fetchLawyers,
   fetchPartnerLogos,
   fetchPrayerRequests,
+  updateBenefit,
   updatePrayerRequestStatus,
   updateAdminUserBlocked,
   updateLawyer,
@@ -89,6 +95,8 @@ describe("admin contracts", () => {
     expect(apiContracts.adminLawyerMedia).toBe("/v1/admin/lawyer-media");
     expect(apiContracts.adminPartnerLogos).toBe("/v1/admin/partner-logos");
     expect(apiContracts.adminPartnerLogoMedia).toBe("/v1/admin/partner-logo-media");
+    expect(apiContracts.adminBenefits).toBe("/v1/admin/benefits");
+    expect(apiContracts.adminBenefitById).toBe("/v1/admin/benefits/:id");
     expect(buildUserBlockedPatch(true)).toEqual({ blocked: true });
     expect(buildPrayerRequestStatusPatch("read")).toEqual({ status: "read" });
   });
@@ -427,6 +435,9 @@ describe("admin contracts", () => {
       await expect(fetchPartnerLogos("redacted-admin-token", { page: 2, pageSize: 5 })).resolves.toMatchObject({
         pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
       });
+      await expect(fetchBenefits("redacted-admin-token", { page: 2, pageSize: 5 })).resolves.toMatchObject({
+        pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
+      });
       await expect(fetchLawyers("redacted-admin-token", { page: 1, pageSize: 8, search: "Ana", status: "approved" })).resolves.toMatchObject({
         pagination: { page: 2, pageSize: 5, total: 11, totalPages: 3 }
       });
@@ -435,6 +446,7 @@ describe("admin contracts", () => {
         expect.stringContaining("/v1/admin/users?page=2&pageSize=5"),
         expect.stringContaining("/v1/admin/prayer-requests?page=2&pageSize=5"),
         expect.stringContaining("/v1/admin/partner-logos?page=2&pageSize=5"),
+        expect.stringContaining("/v1/admin/benefits?page=2&pageSize=5"),
         expect.stringContaining("/v1/admin/lawyers?page=1&pageSize=8&search=Ana&status=approved")
       ]);
     } finally {
@@ -453,6 +465,7 @@ describe("admin contracts", () => {
     expect(app).toContain("fetchAdminUsers(token, {");
     expect(app).toContain("...(userSearch.trim() ? { search: userSearch } : {})");
     expect(app).toContain("fetchPartnerLogos(token, { page: requestedPage, pageSize: PARTNERS_PAGE_SIZE })");
+    expect(app).toContain("fetchBenefits(token, { page: requestedPage, pageSize: BENEFITS_PAGE_SIZE })");
     expect(app).toContain("const hasLawyerFilters");
     expect(app).not.toContain("ListMode");
   });
@@ -740,6 +753,108 @@ describe("admin contracts", () => {
         })
       ).resolves.toMatchObject({ partner: { id: "partner-1", active: true } });
       expect(calls[0]).toContain("/v1/admin/partner-logos");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("builds and manages benefit payloads through backend boundaries", async () => {
+    expect(
+      buildBenefitPayload({
+        ...emptyBenefitForm,
+        title: "  Desconto em software  ",
+        description: " Condicao especial para advogados ",
+        badge: " VIP ",
+        redemptionUrl: "",
+        active: true
+      })
+    ).toEqual({
+      title: "Desconto em software",
+      description: "Condicao especial para advogados",
+      badge: "VIP",
+      redemptionUrl: null,
+      active: true
+    });
+
+    const originalFetch = globalThis.fetch;
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(`${init?.method ?? "GET"} ${String(input)}`);
+      if (init?.method === "POST") {
+        expect(init.body).toBe(
+          JSON.stringify({
+            title: "Desconto em software",
+            description: "Condicao especial para advogados",
+            badge: "VIP",
+            redemptionUrl: null,
+            active: true
+          })
+        );
+        return new Response(
+          JSON.stringify({
+            benefit: {
+              id: "benefit-1",
+              title: "Desconto em software",
+              description: "Condicao especial para advogados",
+              badge: "VIP",
+              active: true,
+              createdAt: "2026-06-03T00:00:00.000Z",
+              updatedAt: "2026-06-03T00:00:00.000Z"
+            },
+            persistence: "memory"
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if (init?.method === "PATCH") {
+        expect(String(input)).toContain("/v1/admin/benefits/benefit-1");
+        return new Response(
+          JSON.stringify({
+            benefit: {
+              id: "benefit-1",
+              title: "Desconto editado",
+              description: "Condicao especial para advogados",
+              active: true,
+              createdAt: "2026-06-03T00:00:00.000Z",
+              updatedAt: "2026-06-04T00:00:00.000Z"
+            },
+            persistence: "memory"
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      if (init?.method === "DELETE") {
+        expect(String(input)).toContain("/v1/admin/benefits/benefit-1");
+        return new Response(null, { status: 204 });
+      }
+      return new Response(JSON.stringify({ benefits: [], persistence: "memory" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }) as typeof fetch;
+
+    try {
+      await expect(fetchBenefits("redacted-admin-token")).resolves.toEqual({ benefits: [], persistence: "memory" });
+      await expect(
+        createBenefit("redacted-admin-token", {
+          title: "Desconto em software",
+          description: "Condicao especial para advogados",
+          badge: "VIP",
+          redemptionUrl: "",
+          active: true
+        })
+      ).resolves.toMatchObject({ benefit: { id: "benefit-1", active: true } });
+      await expect(
+        updateBenefit("redacted-admin-token", "benefit-1", {
+          title: "Desconto editado",
+          description: "Condicao especial para advogados",
+          badge: "",
+          redemptionUrl: "",
+          active: true
+        })
+      ).resolves.toMatchObject({ benefit: { id: "benefit-1", title: "Desconto editado" } });
+      await expect(deleteBenefit("redacted-admin-token", "benefit-1")).resolves.toBeUndefined();
+      expect(calls[0]).toContain("/v1/admin/benefits");
     } finally {
       globalThis.fetch = originalFetch;
     }

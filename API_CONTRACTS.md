@@ -54,10 +54,13 @@ Retorna endereco e coordenadas ou erro validavel.
 - `POST /v1/admin/partner-logo-media`
 - `POST /v1/admin/partner-logos`
 - `GET /v1/partner-logos`
+- `GET /v1/admin/benefits`
+- `POST /v1/admin/benefits`
+- `PATCH /v1/admin/benefits/:id`
+- `DELETE /v1/admin/benefits/:id`
 - `GET /v1/admin/urgent-calls`
 - `PATCH /v1/admin/urgent-calls/:id`
 - `GET /v1/admin/clients`
-- `CRUD /v1/admin/benefits`
 - `CRUD /v1/admin/partners`
 
 ## Erros

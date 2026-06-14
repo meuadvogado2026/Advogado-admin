@@ -20,12 +20,14 @@ export const apiContracts = {
   adminLawyerMedia: "/v1/admin/lawyer-media",
   adminPartnerLogos: "/v1/admin/partner-logos",
   adminPartnerLogoMedia: "/v1/admin/partner-logo-media",
+  adminBenefits: "/v1/admin/benefits",
+  adminBenefitById: "/v1/admin/benefits/:id",
   partnerLogos: "/v1/partner-logos"
 } as const;
 
 export const kpis = [
   { label: "Advogados", value: "API", helper: "Cadastro passa pelo backend" },
-  { label: "CEP", value: "ON", helper: "Geocoding protegido por admin" },
+  { label: "CEP", value: "ON", helper: "Localizacao protegida por admin" },
   { label: "Match", value: "PostGIS", helper: "Aprovado exige coordenada" },
   { label: "Operacao", value: "OK", helper: "Sessao e backend monitorados" }
 ];

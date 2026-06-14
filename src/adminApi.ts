@@ -177,6 +177,25 @@ export type PartnerLogoFormState = {
   active: boolean;
 };
 
+export type BenefitRecord = {
+  id: string;
+  title: string;
+  description: string;
+  badge?: string | null;
+  redemptionUrl?: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BenefitFormState = {
+  title: string;
+  description: string;
+  badge: string;
+  redemptionUrl: string;
+  active: boolean;
+};
+
 export type PaginationRequest = {
   page: number;
   pageSize: number;
@@ -219,6 +238,14 @@ export const emptyPartnerLogoForm: PartnerLogoFormState = {
   name: "",
   logoUrl: "",
   websiteUrl: "",
+  active: true
+};
+
+export const emptyBenefitForm: BenefitFormState = {
+  title: "",
+  description: "",
+  badge: "",
+  redemptionUrl: "",
   active: true
 };
 
@@ -386,6 +413,16 @@ export function buildPartnerLogoPayload(form: PartnerLogoFormState) {
     name: form.name.trim(),
     logoUrl: form.logoUrl.trim(),
     websiteUrl: optionalTrimmed(form.websiteUrl),
+    active: form.active
+  };
+}
+
+export function buildBenefitPayload(form: BenefitFormState) {
+  return {
+    title: form.title.trim(),
+    description: form.description.trim(),
+    badge: optionalTrimmed(form.badge),
+    redemptionUrl: optionalTrimmed(form.redemptionUrl),
     active: form.active
   };
 }
@@ -664,4 +701,37 @@ export async function uploadPartnerLogo(
     body: JSON.stringify({ kind: "partnerLogo", ...input })
   });
   return parseJson<{ image: { url: string; path: string; contentType: string }; persistence: string }>(response);
+}
+
+export async function fetchBenefits(token: string, pagination?: PaginationRequest): Promise<{ benefits: BenefitRecord[]; pagination?: PaginationMeta; persistence: string }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminBenefits}${paginationQuery(pagination)}`, {
+    headers: authHeaders(token)
+  });
+  return parseJson<{ benefits: BenefitRecord[]; pagination?: PaginationMeta; persistence: string }>(response);
+}
+
+export async function createBenefit(token: string, form: BenefitFormState) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminBenefits}`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(buildBenefitPayload(form))
+  });
+  return parseJson<{ benefit: BenefitRecord; persistence: string }>(response);
+}
+
+export async function updateBenefit(token: string, id: string, form: BenefitFormState) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminBenefitById.replace(":id", encodeURIComponent(id))}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify(buildBenefitPayload(form))
+  });
+  return parseJson<{ benefit: BenefitRecord; persistence: string }>(response);
+}
+
+export async function deleteBenefit(token: string, id: string) {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminBenefitById.replace(":id", encodeURIComponent(id))}`, {
+    method: "DELETE",
+    headers: authOnlyHeaders(token)
+  });
+  if (!response.ok) await parseJson(response);
 }

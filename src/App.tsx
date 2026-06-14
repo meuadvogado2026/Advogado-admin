@@ -8,12 +8,16 @@ import {
   Coordinates,
   createAdminCity,
   createAdminState,
+  createBenefit,
   deleteAdminCity,
   deleteAdminState,
+  deleteBenefit,
   createPartnerLogo,
   createLawyer,
+  emptyBenefitForm,
   emptyLawyerForm,
   emptyPartnerLogoForm,
+  fetchBenefits,
   fetchAdminUsers,
   fetchAdminCities,
   fetchAdminStates,
@@ -32,12 +36,15 @@ import {
   PaginationMeta,
   StateRecord,
   updateAdminUserBlocked,
+  updateBenefit,
   updateLawyer,
   updateLawyerStatus,
   updatePrayerRequestStatus,
   uploadLawyerImage,
   uploadPartnerLogo,
-  LegalArea
+  LegalArea,
+  BenefitFormState,
+  BenefitRecord
 } from "./adminApi";
 import {
   AdminSession,
@@ -54,7 +61,7 @@ import "./styles/app.css";
 import logo from "./assets/logo-blue.png";
 
 type Feedback = { kind: "idle" | "success" | "error" | "info"; message: string };
-type AdminView = "dashboard" | "lawyers" | "newLawyer" | "locations" | "prayers" | "users" | "partners" | "operation";
+type AdminView = "dashboard" | "lawyers" | "newLawyer" | "locations" | "prayers" | "users" | "partners" | "benefits" | "operation";
 
 function readInviteHash() {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -70,6 +77,7 @@ const LAWYERS_PAGE_SIZE = 8;
 const PRAYERS_PAGE_SIZE = 6;
 const USERS_PAGE_SIZE = 8;
 const PARTNERS_PAGE_SIZE = 8;
+const BENEFITS_PAGE_SIZE = 8;
 const STATES_PAGE_SIZE = 5;
 const CITIES_PAGE_SIZE = 8;
 
@@ -356,6 +364,15 @@ export function App() {
   const [isUploadingPartnerLogo, setIsUploadingPartnerLogo] = useState(false);
   const [partnerPage, setPartnerPage] = useState(1);
   const [partnersLoadedAt, setPartnersLoadedAt] = useState(0);
+  const [benefits, setBenefits] = useState<BenefitRecord[]>([]);
+  const [benefitForm, setBenefitForm] = useState<BenefitFormState>(emptyBenefitForm);
+  const [editingBenefitId, setEditingBenefitId] = useState<string | null>(null);
+  const [benefitsFeedback, setBenefitsFeedback] = useState<Feedback>({ kind: "idle", message: "" });
+  const [isLoadingBenefits, setIsLoadingBenefits] = useState(false);
+  const [benefitsPagination, setBenefitsPagination] = useState<PaginationMeta | null>(null);
+  const [isSavingBenefit, setIsSavingBenefit] = useState(false);
+  const [benefitPage, setBenefitPage] = useState(1);
+  const [benefitsLoadedAt, setBenefitsLoadedAt] = useState(0);
   const [form, setForm] = useState<LawyerFormState>(emptyLawyerForm);
   const [address, setAddress] = useState<CepAddress | null>(null);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
@@ -529,6 +546,10 @@ export function App() {
     ? { page: partnersPagination.page, totalItems: partnersPagination.total, totalPages: partnersPagination.totalPages }
     : { page: partnerPage, totalItems: partners.length, totalPages: Math.max(1, Math.ceil(partners.length / PARTNERS_PAGE_SIZE)) };
 
+  const benefitsPageInfo = benefitsPagination
+    ? { page: benefitsPagination.page, totalItems: benefitsPagination.total, totalPages: benefitsPagination.totalPages }
+    : { page: benefitPage, totalItems: benefits.length, totalPages: Math.max(1, Math.ceil(benefits.length / BENEFITS_PAGE_SIZE)) };
+
   const pagedStates = useMemo(
     () => paginate(states, statePage, STATES_PAGE_SIZE),
     [states, statePage]
@@ -538,6 +559,18 @@ export function App() {
     () => paginate(cities, cityPage, CITIES_PAGE_SIZE),
     [cities, cityPage]
   );
+
+  function formatLawyerCityState(lawyer: LawyerRecord) {
+    const serviceCity = cities.find((city) => city.id === lawyer.serviceCityId);
+    const serviceState = serviceCity ? states.find((state) => state.id === serviceCity.stateId) : null;
+    if (serviceCity) {
+      return `${serviceCity.name}/${serviceState?.code ?? lawyer.officeState ?? "UF"}`;
+    }
+    if (lawyer.serviceCityId) {
+      return states.length || cities.length ? "Cidade cadastrada" : "Carregando localidade...";
+    }
+    return [lawyer.officeCity, lawyer.officeState].filter(Boolean).join("/") || "Nao informado";
+  }
 
   useEffect(() => {
     setLawyerPage(1);
@@ -581,24 +614,31 @@ export function App() {
     if (activeView === "partners" && session && partners.length === 0 && !isLoadingPartners) {
       void handleLoadPartnerLogos();
     }
-    if ((activeView === "locations" || activeView === "newLawyer") && session && states.length === 0) {
-      void handleLoadLocations();
+    if (activeView === "benefits" && session && benefits.length === 0 && !isLoadingBenefits) {
+      void handleLoadBenefits();
+    }
+    if ((activeView === "locations" || activeView === "newLawyer" || activeView === "lawyers") && session && states.length === 0) {
+      void handleLoadLocations({ silent: activeView === "lawyers" });
     }
   }, [activeView, session]);
 
-  async function handleLoadLocations() {
+  async function handleLoadLocations(options: { silent?: boolean } = {}) {
     if (!token) return;
     try {
       const [nextStates, nextCities] = await Promise.all([fetchAdminStates(token), fetchAdminCities(token)]);
       setStates(nextStates);
       setCities(nextCities);
       setCityDraft((current) => ({ ...current, stateId: current.stateId || nextStates[0]?.id || "" }));
-      setLocationsFeedback({ kind: "success", message: "Catalogo de localidades atualizado." });
+      if (!options.silent) {
+        setLocationsFeedback({ kind: "success", message: "Catalogo de localidades atualizado." });
+      }
     } catch (error) {
-      setLocationsFeedback({
-        kind: "error",
-        message: error instanceof AdminApiError ? error.message : "Falha ao carregar localidades."
-      });
+      if (!options.silent) {
+        setLocationsFeedback({
+          kind: "error",
+          message: error instanceof AdminApiError ? error.message : "Falha ao carregar localidades."
+        });
+      }
     }
   }
 
@@ -614,7 +654,7 @@ export function App() {
       Date.now() - lawyersLoadedAt < CACHE_TTL_MS &&
       lawyersPagination?.page === requestedPage
     ) {
-      setLawyersFeedback({ kind: "success", message: "Listagem restaurada do cache da sessao." });
+      setLawyersFeedback({ kind: "idle", message: "" });
       return;
     }
 
@@ -635,12 +675,8 @@ export function App() {
         response.lawyers.some((lawyer) => lawyer.id === current) ? current : response.lawyers[0]?.id ?? null
       );
       setLawyersFeedback({
-        kind: response.lawyers.length ? "success" : "info",
-        message: response.lawyers.length
-          ? response.pagination
-            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
-            : `Listagem carregada via ${response.persistence}.`
-          : "Nenhum advogado cadastrado ainda."
+        kind: response.lawyers.length ? "idle" : "info",
+        message: response.lawyers.length ? "" : "Nenhum advogado cadastrado ainda."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao listar advogados.";
@@ -662,7 +698,7 @@ export function App() {
       Date.now() - prayersLoadedAt < CACHE_TTL_MS &&
       prayersPagination?.page === requestedPage
     ) {
-      setPrayersFeedback({ kind: "success", message: "Pedidos restaurados do cache da sessao." });
+      setPrayersFeedback({ kind: "idle", message: "" });
       return;
     }
 
@@ -679,12 +715,8 @@ export function App() {
       setPrayerPage(response.pagination?.page ?? 1);
       setPrayersLoadedAt(Date.now());
       setPrayersFeedback({
-        kind: response.requests.length ? "success" : "info",
-        message: response.requests.length
-          ? response.pagination
-            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
-            : `Pedidos carregados via ${response.persistence}.`
-          : "Nenhum pedido de oracao recebido ainda."
+        kind: response.requests.length ? "idle" : "info",
+        message: response.requests.length ? "" : "Nenhum pedido de oracao recebido ainda."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao listar pedidos de oracao.";
@@ -706,7 +738,7 @@ export function App() {
       Date.now() - usersLoadedAt < CACHE_TTL_MS &&
       usersPagination?.page === requestedPage
     ) {
-      setUsersFeedback({ kind: "success", message: "Usuarios restaurados do cache da sessao." });
+      setUsersFeedback({ kind: "idle", message: "" });
       return;
     }
 
@@ -726,12 +758,8 @@ export function App() {
         response.users.some((user) => user.id === current) ? current : response.users[0]?.id ?? null
       );
       setUsersFeedback({
-        kind: response.users.length ? "success" : "info",
-        message: response.users.length
-          ? response.pagination
-            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
-            : `Usuarios carregados via ${response.persistence}.`
-          : "Nenhum usuario cadastrado."
+        kind: response.users.length ? "idle" : "info",
+        message: response.users.length ? "" : "Nenhum usuario cadastrado."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao listar usuarios.";
@@ -753,7 +781,7 @@ export function App() {
       Date.now() - partnersLoadedAt < CACHE_TTL_MS &&
       partnersPagination?.page === requestedPage
     ) {
-      setPartnersFeedback({ kind: "success", message: "Parceiros restaurados do cache da sessao." });
+      setPartnersFeedback({ kind: "idle", message: "" });
       return;
     }
 
@@ -766,18 +794,50 @@ export function App() {
       setPartnerPage(response.pagination?.page ?? requestedPage);
       setPartnersLoadedAt(Date.now());
       setPartnersFeedback({
-        kind: response.partners.length ? "success" : "info",
-        message: response.partners.length
-          ? response.pagination
-            ? `Pagina ${response.pagination.page}/${response.pagination.totalPages} carregada via ${response.persistence}.`
-            : `Parceiros carregados via ${response.persistence}.`
-          : "Nenhum parceiro cadastrado ainda."
+        kind: response.partners.length ? "idle" : "info",
+        message: response.partners.length ? "" : "Nenhum parceiro cadastrado ainda."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao listar parceiros.";
       setPartnersFeedback({ kind: "error", message });
     } finally {
       setIsLoadingPartners(false);
+    }
+  }
+
+  async function handleLoadBenefits(force = false, page = benefitPage) {
+    if (!token) {
+      setBenefitsFeedback({ kind: "error", message: "Entre como admin antes de listar beneficios." });
+      return;
+    }
+    const requestedPage = Math.max(1, page);
+    if (
+      !force &&
+      benefits.length > 0 &&
+      Date.now() - benefitsLoadedAt < CACHE_TTL_MS &&
+      benefitsPagination?.page === requestedPage
+    ) {
+      setBenefitsFeedback({ kind: "idle", message: "" });
+      return;
+    }
+
+    setIsLoadingBenefits(true);
+    setBenefitsFeedback({ kind: "info", message: "Carregando beneficios..." });
+    try {
+      const response = await fetchBenefits(token, { page: requestedPage, pageSize: BENEFITS_PAGE_SIZE });
+      setBenefits(response.benefits);
+      setBenefitsPagination(response.pagination ?? null);
+      setBenefitPage(response.pagination?.page ?? requestedPage);
+      setBenefitsLoadedAt(Date.now());
+      setBenefitsFeedback({
+        kind: response.benefits.length ? "idle" : "info",
+        message: response.benefits.length ? "" : "Nenhum beneficio cadastrado ainda."
+      });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao listar beneficios.";
+      setBenefitsFeedback({ kind: "error", message });
+    } finally {
+      setIsLoadingBenefits(false);
     }
   }
 
@@ -822,6 +882,8 @@ export function App() {
         "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c0-3 3.6-5 8-5s8 2 8 5v1H4v-1Zm15-8 3 3-3 3-1.4-1.4.6-.6H16v-2h2.2l-.6-.6L19 12Z",
       partners:
         "M4 5h16v10H4V5Zm2 2v8h12V7H6Zm1 10h10v2H7v-2Zm11.5-2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM8 9.5 10.2 12l2.1-2.6L16 14H6l2-4.5Z",
+      benefits:
+        "M20 7h-2.2A3 3 0 0 0 12 5.2 3 3 0 0 0 6.2 7H4a2 2 0 0 0-2 2v3h20V9a2 2 0 0 0-2-2ZM9 7a1 1 0 1 1 1-1c0 .6-.4 1-1 1Zm6 0a1 1 0 1 1 1-1c0 .6-.4 1-1 1ZM4 14v6h7v-6H4Zm9 0v6h7v-6h-7Z",
       operation:
         "M12 2 3 6v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V6l-9-4Zm0 3.2 6 2.7V12c0 3.8-2.5 7.2-6 8.4-3.5-1.2-6-4.6-6-8.4V7.9l6-2.7Z"
       ,
@@ -844,6 +906,7 @@ export function App() {
     { view: "prayers", label: "Oracoes" },
     { view: "users", label: "Usuarios" },
     { view: "partners", label: "Parceiros" },
+    { view: "benefits", label: "Beneficios" },
     { view: "operation", label: "Operacao" }
   ];
 
@@ -885,6 +948,28 @@ export function App() {
 
   function updatePartnerForm(field: keyof PartnerLogoFormState, value: string | boolean) {
     setPartnerForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateBenefitForm(field: keyof BenefitFormState, value: string | boolean) {
+    setBenefitForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function startEditBenefit(benefit: BenefitRecord) {
+    setEditingBenefitId(benefit.id);
+    setBenefitForm({
+      title: benefit.title,
+      description: benefit.description,
+      badge: benefit.badge ?? "",
+      redemptionUrl: benefit.redemptionUrl ?? "",
+      active: benefit.active
+    });
+    setBenefitsFeedback({ kind: "idle", message: "" });
+  }
+
+  function cancelBenefitEdit() {
+    setEditingBenefitId(null);
+    setBenefitForm(emptyBenefitForm);
+    setBenefitsFeedback({ kind: "idle", message: "" });
   }
 
   function startNewLawyer() {
@@ -1209,6 +1294,57 @@ export function App() {
     }
   }
 
+  async function handleBenefitSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!token) {
+      setBenefitsFeedback({ kind: "error", message: "Entre como admin antes de salvar beneficio." });
+      return;
+    }
+    if (!benefitForm.title.trim() || !benefitForm.description.trim()) {
+      setBenefitsFeedback({ kind: "error", message: "Informe titulo e descricao antes de salvar." });
+      return;
+    }
+
+    setIsSavingBenefit(true);
+    setBenefitsFeedback({ kind: "info", message: editingBenefitId ? "Atualizando beneficio..." : "Salvando beneficio..." });
+    try {
+      if (editingBenefitId) {
+        await updateBenefit(token, editingBenefitId, benefitForm);
+      } else {
+        await createBenefit(token, benefitForm);
+        setBenefitPage(1);
+      }
+      setEditingBenefitId(null);
+      setBenefitForm(emptyBenefitForm);
+      await handleLoadBenefits(true, editingBenefitId ? benefitPage : 1);
+      setBenefitsFeedback({ kind: "success", message: editingBenefitId ? "Beneficio atualizado." : "Beneficio salvo para o painel do advogado." });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao salvar beneficio.";
+      setBenefitsFeedback({ kind: "error", message });
+    } finally {
+      setIsSavingBenefit(false);
+    }
+  }
+
+  async function handleBenefitDelete(benefit: BenefitRecord) {
+    if (!token) {
+      setBenefitsFeedback({ kind: "error", message: "Entre como admin antes de remover beneficio." });
+      return;
+    }
+    if (!window.confirm(`Remover o beneficio "${benefit.title}"?`)) return;
+
+    setBenefitsFeedback({ kind: "info", message: "Removendo beneficio..." });
+    try {
+      await deleteBenefit(token, benefit.id);
+      if (editingBenefitId === benefit.id) cancelBenefitEdit();
+      await handleLoadBenefits(true, benefitPage);
+      setBenefitsFeedback({ kind: "success", message: "Beneficio removido." });
+    } catch (error) {
+      const message = error instanceof AdminApiError ? error.message : "Falha ao remover beneficio.";
+      setBenefitsFeedback({ kind: "error", message });
+    }
+  }
+
   async function handlePrayerStatusChange(request: AdminPrayerRequest, status: AdminPrayerRequest["status"]) {
     if (!token) {
       setPrayersFeedback({ kind: "error", message: "Entre como admin antes de atualizar a oracao." });
@@ -1441,7 +1577,7 @@ export function App() {
                           </small>
                         </span>
                         <span className="lawyer-meta">
-                          {[lawyer.officeCity, lawyer.officeState].filter(Boolean).join("/")}
+                          {formatLawyerCityState(lawyer)}
                         </span>
                         <span className="status-pill">{statusLabels[lawyer.status]}</span>
                       </button>
@@ -1511,15 +1647,7 @@ export function App() {
                     </div>
                     <div>
                       <dt>Cidade/UF</dt>
-                      <dd>{[selectedLawyer.officeCity, selectedLawyer.officeState].filter(Boolean).join("/") || "Nao informado"}</dd>
-                    </div>
-                    <div>
-                      <dt>Geocoding</dt>
-                      <dd>
-                        {formatSafeCoordinateState(selectedLawyer)}
-                        {" - "}
-                        {formatGeocodeMetadata(selectedLawyer)}
-                      </dd>
+                      <dd>{formatLawyerCityState(selectedLawyer)}</dd>
                     </div>
                     <div>
                       <dt>Acesso</dt>
@@ -2207,6 +2335,138 @@ export function App() {
                   const previousPage = Math.max(partnersPageInfo.page - 1, 1);
                   setPartnerPage(previousPage);
                   void handleLoadPartnerLogos(false, previousPage);
+                }}
+              />
+            </aside>
+          </section>
+        ) : null}
+
+        {activeView === "benefits" ? (
+          <section className="workspace" aria-label="Beneficios do advogado">
+            <form className="panel form-panel" onSubmit={handleBenefitSubmit}>
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Beneficios</p>
+                  <h2>{editingBenefitId ? "Editar beneficio" : "Adicionar beneficio"}</h2>
+                </div>
+                <button className="secondary-action" disabled={isLoadingBenefits} onClick={() => void handleLoadBenefits(true, benefitPage)} type="button">
+                  {isLoadingBenefits ? "Atualizando" : "Atualizar"}
+                </button>
+              </div>
+
+              <div className="form-grid">
+                <label className="field">
+                  <span>Titulo</span>
+                  <input
+                    placeholder="Ex: Desconto em software juridico"
+                    value={benefitForm.title}
+                    onChange={(event) => updateBenefitForm("title", event.target.value)}
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Selo opcional</span>
+                  <input
+                    maxLength={40}
+                    placeholder="Ex: Exclusivo"
+                    value={benefitForm.badge}
+                    onChange={(event) => updateBenefitForm("badge", event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <label className="field wide">
+                <span>Descricao</span>
+                <textarea
+                  maxLength={600}
+                  placeholder="Explique ao advogado o que ele tem direito."
+                  value={benefitForm.description}
+                  onChange={(event) => updateBenefitForm("description", event.target.value)}
+                />
+              </label>
+
+              <label className="field wide">
+                <span>Link de resgate opcional</span>
+                <input
+                  placeholder="https://..."
+                  value={benefitForm.redemptionUrl}
+                  onChange={(event) => updateBenefitForm("redemptionUrl", event.target.value)}
+                />
+              </label>
+
+              <div className="partner-actions">
+                <label className="toggle-row">
+                  <input
+                    checked={benefitForm.active}
+                    onChange={(event) => updateBenefitForm("active", event.target.checked)}
+                    type="checkbox"
+                  />
+                  Ativo no painel do advogado
+                </label>
+              </div>
+
+              <footer className="form-actions">
+                {editingBenefitId ? (
+                  <button className="secondary-action" onClick={cancelBenefitEdit} type="button">
+                    Cancelar edicao
+                  </button>
+                ) : null}
+                <button disabled={isSavingBenefit || !benefitForm.title.trim() || !benefitForm.description.trim()} type="submit">
+                  {isSavingBenefit ? "Salvando" : editingBenefitId ? "Atualizar beneficio" : "Salvar beneficio"}
+                </button>
+              </footer>
+
+              {benefitsFeedback.message ? <p className={`feedback ${benefitsFeedback.kind}`}>{benefitsFeedback.message}</p> : null}
+            </form>
+
+            <aside className="panel result-panel">
+              <div>
+                <p className="eyebrow">Clube de beneficios</p>
+                <h2>Beneficios cadastrados</h2>
+              </div>
+
+              <div className="benefit-list" aria-busy={isLoadingBenefits}>
+                {isLoadingBenefits ? <p className="empty-state">Carregando beneficios...</p> : null}
+                {!isLoadingBenefits && benefits.length === 0 ? <p className="empty-state">Nenhum beneficio cadastrado.</p> : null}
+                {!isLoadingBenefits
+                  ? benefits.map((benefit) => (
+                      <article className={`benefit-item ${benefit.active ? "" : "inactive"}`} key={benefit.id}>
+                        <div className="benefit-item-main">
+                          <div className="benefit-item-heading">
+                            <strong>{benefit.title}</strong>
+                            <span className={`status-pill ${benefit.active ? "" : "read-pill"}`}>{benefit.active ? "Ativo" : "Inativo"}</span>
+                          </div>
+                          <p>{benefit.description}</p>
+                          <div className="benefit-tags">
+                            {benefit.badge ? <small>{benefit.badge}</small> : null}
+                            {benefit.redemptionUrl ? <small>Link de resgate</small> : null}
+                          </div>
+                        </div>
+                        <div className="benefit-actions">
+                          <button className="secondary-action" onClick={() => startEditBenefit(benefit)} type="button">
+                            Editar
+                          </button>
+                          <button className="icon-danger-action" onClick={() => void handleBenefitDelete(benefit)} title="Remover beneficio" type="button">
+                            ×
+                          </button>
+                        </div>
+                      </article>
+                    ))
+                  : null}
+              </div>
+              <Pagination
+                page={benefitsPageInfo.page}
+                totalItems={benefitsPageInfo.totalItems}
+                totalPages={benefitsPageInfo.totalPages}
+                onNext={() => {
+                  const nextPage = Math.min(benefitsPageInfo.page + 1, benefitsPageInfo.totalPages);
+                  setBenefitPage(nextPage);
+                  void handleLoadBenefits(false, nextPage);
+                }}
+                onPrevious={() => {
+                  const previousPage = Math.max(benefitsPageInfo.page - 1, 1);
+                  setBenefitPage(previousPage);
+                  void handleLoadBenefits(false, previousPage);
                 }}
               />
             </aside>
