@@ -16,6 +16,7 @@ export const apiContracts = {
   adminPrayerRequests: "/v1/admin/prayer-requests",
   adminPrayerRequestById: "/v1/admin/prayer-requests/:id",
   adminUsers: "/v1/admin/users",
+  adminAccountDeletionRequests: "/v1/admin/account-deletion-requests",
   adminUserById: "/v1/admin/users/:id",
   adminLawyerMedia: "/v1/admin/lawyer-media",
   adminPartnerLogos: "/v1/admin/partner-logos",

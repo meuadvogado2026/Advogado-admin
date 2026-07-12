@@ -18,6 +18,9 @@ import {
   emptyLawyerForm,
   emptyPartnerLogoForm,
   fetchBenefits,
+  fetchAccountDeletionRequests,
+  updateAccountDeletionRequest,
+  AccountDeletionRequest,
   fetchAdminUsers,
   fetchAdminCities,
   fetchAdminStates,
@@ -354,6 +357,7 @@ export function App() {
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
   const [userPage, setUserPage] = useState(1);
   const [usersLoadedAt, setUsersLoadedAt] = useState(0);
+  const [accountDeletionRequests, setAccountDeletionRequests] = useState<AccountDeletionRequest[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState<"avatar" | "cover" | null>(null);
   const [partners, setPartners] = useState<PartnerLogoRecord[]>([]);
   const [partnerForm, setPartnerForm] = useState<PartnerLogoFormState>(emptyPartnerLogoForm);
@@ -381,6 +385,11 @@ export function App() {
   const geocodeRequestRef = useRef(0);
   const [isSaving, setIsSaving] = useState(false);
   const token = session?.accessToken ?? "";
+
+  useEffect(() => {
+    if (!session) return;
+    fetchAccountDeletionRequests(session.accessToken).then((response) => setAccountDeletionRequests(response.requests)).catch(() => setAccountDeletionRequests([]));
+  }, [session]);
 
   useEffect(() => {
     fetchAreas()
@@ -1496,6 +1505,17 @@ export function App() {
             </button>
           </div>
         </header>
+
+        {accountDeletionRequests.filter((item) => item.status !== "completed").length > 0 ? (
+          <section className="panel result-panel" aria-label="Solicitacoes de exclusao de conta">
+            <div><p className="eyebrow">Privacidade</p><h2>Solicitacoes de exclusao</h2></div>
+            {accountDeletionRequests.filter((item) => item.status !== "completed").map((item) => (
+              <div key={item.id}><p><strong>{item.priority === "overdue" ? "VENCIDO" : item.priority === "warning" ? "ATENCAO: 10 dias" : "Novo pedido"}</strong> — {item.name} ({item.email}) · prazo {formatDateTime(item.dueAt)}</p>
+                <button className="secondary-action" onClick={() => { if (!window.confirm(`Confirme que a exclusão de dados de ${item.name} já foi executada. Esta ação encerra o pedido.`)) return; void updateAccountDeletionRequest(token, item.id, "completed").then(({ request }) => { setAccountDeletionRequests((current) => current.map((candidate) => candidate.id === request.id ? request : candidate)); navigator.clipboard?.writeText(`Olá, ${item.name}. Confirmamos a conclusão da solicitação de exclusão da sua conta Advogado 2.0. Sua conta foi removida e os dados associados foram excluídos ou anonimizados. Poderemos manter somente os dados estritamente necessários por obrigação legal, segurança, prevenção a fraude ou exercício regular de direitos, pelo prazo aplicável.`); }).catch(() => undefined); }} type="button">Concluir e copiar mensagem</button>
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         {activeView === "dashboard" ? <section className="kpi-grid" aria-label="Indicadores administrativos">
           {kpis.map((kpi) => (

@@ -134,6 +134,8 @@ export type AdminUserRecord = {
   lawyerStatus?: LawyerStatus | null;
 };
 
+export type AccountDeletionRequest = { id: string; profileId: string; name: string; email: string; role: "client" | "lawyer" | "admin"; status: "requested" | "in_review" | "completed"; requestedAt: string; dueAt: string; completedAt: string | null; priority: "normal" | "warning" | "overdue" };
+
 export type LawyerFormState = {
   name: string;
   email: string;
@@ -664,6 +666,16 @@ export async function fetchAdminUsers(token: string, pagination?: PaginationRequ
     headers: authHeaders(token)
   });
   return parseJson<{ users: AdminUserRecord[]; pagination?: PaginationMeta; persistence: string }>(response);
+}
+
+export async function fetchAccountDeletionRequests(token: string): Promise<{ requests: AccountDeletionRequest[] }> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminAccountDeletionRequests}`, { headers: authHeaders(token) });
+  return parseJson<{ requests: AccountDeletionRequest[] }>(response);
+}
+
+export async function updateAccountDeletionRequest(token: string, id: string, status: "in_review" | "completed") {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminAccountDeletionRequests}/${encodeURIComponent(id)}`, { method: "PATCH", headers: authHeaders(token), body: JSON.stringify({ status }) });
+  return parseJson<{ request: AccountDeletionRequest }>(response);
 }
 
 export async function updateAdminUserBlocked(token: string, userId: string, blocked: boolean) {
