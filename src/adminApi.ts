@@ -441,7 +441,7 @@ export class AdminApiError extends Error {
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.PROD ? "https://advogado-back-production.up.railway.app" : "http://localhost:3333");
+  (import.meta.env.PROD ? "https://advogado-back-production-0be1.up.railway.app" : "http://localhost:3333");
 const SESSION_STORAGE_KEY = "meu_advogado_admin_session";
 
 function clearStoredAdminSessionOnAuthFailure(status: number) {

@@ -103,7 +103,7 @@ Gates pendentes para producao:
 
 - Vercel deve servir build da spec 006 com `/login`.
 - Bundle nao deve conter campo/token manual como caminho operacional.
-- `VITE_API_BASE_URL` deve apontar para `https://advogado-back-production.up.railway.app`.
+- `VITE_API_BASE_URL` deve apontar para `https://advogado-back-production-0be1.up.railway.app`.
 - Backend publicado deve responder `GET /v1/me`.
 - Repetir smoke assistido com credencial admin real redigida e cadastro descartavel com limpeza.
 
@@ -114,10 +114,10 @@ Validacao sem credenciais reais apos admin commit `cb0b707` e backend commit `e6
 - `https://advogado20admin.vercel.app/`: HTTP `200`, titulo `Advogado 2.0 Admin`.
 - `https://advogado20admin.vercel.app/login`: HTTP `200`.
 - `/login` renderizou Email, Senha e Entrar.
-- Bundle publicado aponta para `https://advogado-back-production.up.railway.app` e nao para `localhost:3333`.
+- Bundle publicado aponta para `https://advogado-back-production-0be1.up.railway.app` e nao para `localhost:3333`.
 - Bundle nao contem campo/token manual como caminho operacional.
 - Backend Railway respondeu `GET /v1/me` sem token com `401`.
-- Browser falhou `GET https://advogado-back-production.up.railway.app/v1/areas` por CORS.
+- Browser falhou `GET https://advogado-back-production-0be1.up.railway.app/v1/areas` por CORS.
 - Checks CORS: `OPTIONS /v1/me`, `/v1/admin/geocode/cep` e `/v1/admin/lawyers` retornaram `204`, mas sem `Access-Control-Allow-Origin` para `https://advogado20admin.vercel.app`.
 - Bundle publicado nao contem `VITE_SUPABASE_ANON_KEY`; login real depende de env Vercel e rebuild.
 - Evidencia sem credenciais: `harness-results/vercel-admin-login-updated.png`.
@@ -156,7 +156,7 @@ Validacao sem credenciais reais apos usuario informar env Vercel configurada e l
 - `https://advogado20admin.vercel.app/login`: HTTP `200`.
 - `/login` renderizou Email, Senha e Entrar, sem campo/token manual.
 - Rota privada sem sessao redirecionou para `/login`.
-- Bundle publicado aponta para `https://advogado-back-production.up.railway.app` e nao para `localhost`.
+- Bundle publicado aponta para `https://advogado-back-production-0be1.up.railway.app` e nao para `localhost`.
 - Bundle contem configuracao Supabase publica suficiente para login; anon key nao foi impressa nem registrada.
 - `GET /v1/areas` retornou `200` com CORS para Vercel.
 - `GET /v1/me` sem token retornou `401` com CORS para Vercel.

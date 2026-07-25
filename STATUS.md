@@ -1,5 +1,12 @@
 # Admin Status - Advogado 2.0
 
+- 2026-07-24 Railway: fallback de producao em `src/authApi.ts` e `src/adminApi.ts`
+  atualizado para `https://advogado-back-production-0be1.up.railway.app`.
+  Smoke remoto confirmou `/health` 200, `/v1/areas` 200 e
+  `/v1/auth/oauth-client/complete` 401 sem Bearer; `npm run harness` passou.
+  Se o Vercel tiver `VITE_API_BASE_URL` configurado, atualizar a env no dashboard
+  para o mesmo dominio antes do redeploy.
+
 ## Spec 012 - 2026-06-10
 
 - Refinamento local: estados/cidades inativos nao aparecem; a tela informa que novo
