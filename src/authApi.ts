@@ -14,7 +14,7 @@ export type AdminSession = {
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.PROD ? "https://advogado-back-production.up.railway.app" : "http://localhost:3333");
+  (import.meta.env.PROD ? "https://advogado-back-production-0be1.up.railway.app" : "http://localhost:3333");
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? "https://qpemxkiowiiklztgumqy.supabase.co";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const SESSION_STORAGE_KEY = "meu_advogado_admin_session";
