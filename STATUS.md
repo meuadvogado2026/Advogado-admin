@@ -116,3 +116,8 @@ Redirect publico `/primeiro-acesso` esta publicado e permitido no Supabase. Falt
 o smoke humano de definir senha a partir de convite recebido em e-mail real valido, sem
 registrar senha, token ou action link. O restante do admin operacional permanece publicado
 e validado.
+
+
+## SPEC-020 - Dominio admin (2026-11-14)
+
+API compartilhada em src/apiConfig.ts usa DigitalOcean em producao; override legado Railway e rejeitado. Desenvolvimento permanece localhost. Harness tipos/testes/build/smoke OK. Dominio alvo admin.advogado20.com.br depende de acesso a equipe Vercel meuadvogado2026s-projects e DNS. Convites existentes continuam com redirect Vercel ate allowlist/variavel serem atualizados em conjunto.

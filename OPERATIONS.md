@@ -35,3 +35,8 @@ Somente variaveis publicas seguras no frontend. Segredos ficam no backend/Railwa
 
 - Usar rollback da Vercel.
 - Manter API versionada para evitar quebra entre deploys.
+
+
+## SPEC-020 - Dominio admin (2026-11-14)
+
+API compartilhada em src/apiConfig.ts usa DigitalOcean em producao; override legado Railway e rejeitado. Desenvolvimento permanece localhost. Harness tipos/testes/build/smoke OK. Dominio alvo admin.advogado20.com.br depende de acesso a equipe Vercel meuadvogado2026s-projects e DNS. Convites existentes continuam com redirect Vercel ate allowlist/variavel serem atualizados em conjunto.
