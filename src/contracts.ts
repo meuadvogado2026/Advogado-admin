@@ -26,4 +26,3 @@ export const apiContracts = {
   adminBenefitById: "/v1/admin/benefits/:id",
   partnerLogos: "/v1/partner-logos"
 } as const;
-
