@@ -50,3 +50,8 @@ Novo Advogado e Operacao ocultos na navegacao; atalho global removido; cadastro/
 ## SPEC-022 - Dashboard e consulta por estado / 2026-11-14
 
 Dashboard consome API agregada:6 cards, regioes/UF com base explicada, status e prioridades acionaveis. Loading/erro/retry/vazio/atualizacao nao fabricam totais. Catalogo consulta cidades porUF/nome/situacao, reseta pagina e acompanha estado do formulario. Reativacao explicita e lista de advogados preservadas. Sidebar deixa de prometer100%Online sem monitoramento. Harness35 testes/tipos/build/smoke e Chrome fixtures nas4larguras OK. Requer API CON-022 antes da publicacao.
+
+
+## SPEC-023 - Operacao no dashboard / 2026-11-14
+
+Tres blocos no dashboard: oracoes pendentes/lidas/total e percentual lido; parceiros/beneficios total/ativos/inativos e percentual ativo. Atalhos abrem filtros received/read ou gestao correta. Loading/erro/vazio/refresh preservados e sem confundir leitura com resposta. Harness35 testes/tipos/build/smoke e Chrome fixtures4larguras OK. Publicar apos API estendida.

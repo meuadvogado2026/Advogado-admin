@@ -1564,7 +1564,10 @@ export function App() {
         {activeView === "dashboard" ? <AdminDashboard token={token}
           onReview={() => { setLawyerStatusFilter("pending_review"); setActiveView("lawyers"); }}
           onApproved={() => { setLawyerStatusFilter("approved"); setActiveView("lawyers"); }}
-          onLocations={() => setActiveView("locations")} /> : null}
+          onLocations={() => setActiveView("locations")}
+          onPrayers={(status) => { setPrayerStatusFilter(status); setPrayerPage(1); setActiveView("prayers"); }}
+          onPartners={() => setActiveView("partners")}
+          onBenefits={() => setActiveView("benefits")} /> : null}
 
         {activeView === "lawyers" ? (
           <section className="lawyers-workspace" aria-label="Gestao operacional de advogados">

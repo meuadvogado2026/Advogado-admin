@@ -12,3 +12,8 @@ Fonte: analise direta do codigo local, 2026-11-14, SPEC-022/ADR-016/CON-022.
 - Admin filtra catalogo completo por estado/nome sem acento/situacao, com paginacao local apos filtro. Cidade existente nao e recriada; reativacao permanece explicita porPATCH.
 
 Gates: Harness back/admin, Vitest agregacao/snapshot/roles/PII/filtros; scripts/admin-regression.cjs Chrome com fixtures para loading/falha/zero/prioridades/cidades e responsividade. Smoke real compara totais com fontes paginadas apos rolloutAPI/admin. Rollback: reverter codigo sem dados/schema a restaurar.
+
+
+## SPEC-023 - Operacao no dashboard / 2026-11-14
+
+Tres blocos no dashboard: oracoes pendentes/lidas/total e percentual lido; parceiros/beneficios total/ativos/inativos e percentual ativo. Atalhos abrem filtros received/read ou gestao correta. Loading/erro/vazio/refresh preservados e sem confundir leitura com resposta. Harness35 testes/tipos/build/smoke e Chrome fixtures4larguras OK. Publicar apos API estendida.

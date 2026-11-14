@@ -1465,3 +1465,18 @@ dd {
 .city-inactive-label { color: var(--muted); display: block; margin-top: 6px; }
 @media (max-width: 1100px) { .dashboard-panels { grid-template-columns: minmax(0,1fr); } .dashboard-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 600px) { .dashboard-kpis { grid-template-columns: minmax(0,1fr); } .dashboard-heading { align-items: stretch; } .region-row > div:first-child { flex-wrap: wrap; } }
+
+
+/* SPEC-023: contagens operacionais sem conteudo individual. */
+.dashboard-operations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.operation-summary { min-width: 0; display: flex; flex-direction: column; }
+.operation-summary h2 { font-size: 19px; }
+.operation-headline { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
+.operation-headline > strong { color: var(--gold); font-size: 32px; }
+.operation-headline > span { color: var(--muted); font-size: 13px; }
+.operation-summary .dashboard-statuses { margin-bottom: 0; }
+.operation-summary .secondary-action { min-width: 0; max-width: 100%; white-space: normal; }
+.operation-summary > .secondary-action, .operation-actions { margin-top: auto; }
+.operation-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.operation-actions > button { flex: 1 1 130px; }
+@media (max-width: 1100px) { .dashboard-operations { grid-template-columns: minmax(0,1fr); } }
