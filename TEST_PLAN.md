@@ -183,3 +183,8 @@ Validacao assistida com credencial admin real digitada pelo usuario no navegador
 - Negativo nao-admin nao executado por falta de credencial segura desse perfil.
 
 Veredito: `VALIDADA_SMOKE_ADMIN_PRODUCAO`.
+
+
+## SPEC-020 - Dominio admin (2026-11-14)
+
+API compartilhada em src/apiConfig.ts usa DigitalOcean em producao; override legado Railway e rejeitado. Desenvolvimento permanece localhost. Harness tipos/testes/build/smoke OK. Dominio alvo admin.advogado20.com.br depende de acesso a equipe Vercel meuadvogado2026s-projects e DNS. Convites existentes continuam com redirect Vercel ate allowlist/variavel serem atualizados em conjunto.
