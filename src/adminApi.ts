@@ -757,6 +757,11 @@ export async function deleteBenefit(token: string, id: string) {
 
 
 export type AdminDashboardData = {
+  operations: {
+    prayers: { total: number; pending: number; read: number; readPercentage: number };
+    partners: { total: number; active: number; inactive: number; activePercentage: number };
+    benefits: { total: number; active: number; inactive: number; activePercentage: number };
+  };
   generatedAt: string;
   users: { total: number; clients: number; lawyerAccounts: number; blocked: number; newLast30Days: number };
   lawyers: { total: number; available: number; approvedUnavailable: number; statuses: Record<LawyerStatus, number> };
