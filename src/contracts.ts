@@ -5,6 +5,7 @@ export const apiContracts = {
   areas: "/v1/areas",
   states: "/v1/states",
   stateCities: "/v1/states/:stateId/cities",
+  adminDashboard: "/v1/admin/dashboard",
   adminLawyers: "/v1/admin/lawyers",
   adminLawyerById: "/v1/admin/lawyers/:id",
   adminLawyerAccessInvite: "/v1/admin/lawyers/:id/access-invite",
@@ -26,9 +27,3 @@ export const apiContracts = {
   partnerLogos: "/v1/partner-logos"
 } as const;
 
-export const kpis = [
-  { label: "Advogados", value: "API", helper: "Cadastro passa pelo backend" },
-  { label: "CEP", value: "ON", helper: "Localizacao protegida por admin" },
-  { label: "Match", value: "PostGIS", helper: "Aprovado exige coordenada" },
-  { label: "Operacao", value: "OK", helper: "Sessao e backend monitorados" }
-];
