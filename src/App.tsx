@@ -60,7 +60,8 @@ import {
   storeSession
 } from "./authApi";
 import { OfficeLocationMap } from "./components/OfficeLocationMap";
-import { kpis } from "./contracts";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { filterCatalogCities, normalizeCityName } from "./geographyCatalog";
 import "./styles/app.css";
 import logo from "./assets/logo-blue.png";
 
@@ -328,6 +329,11 @@ export function App() {
   const [cityDraft, setCityDraft] = useState({ stateId: "", name: "" });
   const [statePage, setStatePage] = useState(1);
   const [cityPage, setCityPage] = useState(1);
+  const [cityFilterStateId, setCityFilterStateId] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [cityStatus, setCityStatus] = useState<"active" | "inactive" | "all">("active");
+  useEffect(() => { setCityFilterStateId(cityDraft.stateId); setCitySearch(""); setCityStatus("active"); setExpandedLocationList("cities"); }, [cityDraft.stateId]);
+  useEffect(() => { setCityPage(1); }, [cityFilterStateId, citySearch, cityStatus]);
   const [cityToReactivate, setCityToReactivate] = useState<CityRecord | null>(null);
   const [isSavingCity, setIsSavingCity] = useState(false);
 
@@ -570,9 +576,10 @@ export function App() {
   );
 
   const activeCities = useMemo(() => cities.filter((city) => city.active), [cities]);
+  const filteredCities = useMemo(() => filterCatalogCities(cities, cityFilterStateId, citySearch, cityStatus), [cities, cityFilterStateId, citySearch, cityStatus]);
   const pagedCities = useMemo(
-    () => paginate(activeCities, cityPage, CITIES_PAGE_SIZE),
-    [activeCities, cityPage]
+    () => paginate(filteredCities, cityPage, CITIES_PAGE_SIZE),
+    [filteredCities, cityPage]
   );
 
   function formatLawyerCityState(lawyer: LawyerRecord) {
@@ -1048,8 +1055,7 @@ export function App() {
     setIsSavingCity(true);
     try {
       const stateCities = await fetchAdminCities(token, cityDraft.stateId);
-      const normalizeName = (name: string) => name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const existing = stateCities.find((city) => normalizeName(city.name) === normalizeName(cityDraft.name));
+      const existing = stateCities.find((city) => normalizeCityName(city.name) === normalizeCityName(cityDraft.name));
       if (existing) {
         if (!existing.active) {
           setCityToReactivate(existing);
@@ -1057,8 +1063,10 @@ export function App() {
         } else {
           const nextCities = await fetchAdminCities(token);
           setCities(nextCities);
-          const index = nextCities.filter((city) => city.active).findIndex((city) => city.id === existing.id);
-          setCityPage(Math.max(1, Math.floor(index / CITIES_PAGE_SIZE) + 1));
+          setCityFilterStateId(existing.stateId);
+          setCitySearch(existing.name);
+          setCityStatus("active");
+          setCityPage(1);
           setExpandedLocationList("cities");
           setLocationsFeedback({ kind: "info", message: `A cidade ${existing.name} já está cadastrada e ativa nesse estado. Consulte o registro na lista de cidades.` });
         }
@@ -1524,7 +1532,7 @@ export function App() {
         </nav>
         <div className="sidebar-health">
           <span className="health-dot" aria-hidden="true" />
-          <span>Servidor: 100% Online</span>
+          <span>Administração da plataforma</span>
         </div>
       </aside>
 
@@ -1553,15 +1561,10 @@ export function App() {
           </section>
         ) : null}
 
-        {activeView === "dashboard" ? <section className="kpi-grid" aria-label="Indicadores administrativos">
-          {kpis.map((kpi) => (
-            <article className="kpi" key={kpi.label}>
-              <span>{kpi.label}</span>
-              <strong>{kpi.value}</strong>
-              <small>{kpi.helper}</small>
-            </article>
-          ))}
-        </section> : null}
+        {activeView === "dashboard" ? <AdminDashboard token={token}
+          onReview={() => { setLawyerStatusFilter("pending_review"); setActiveView("lawyers"); }}
+          onApproved={() => { setLawyerStatusFilter("approved"); setActiveView("lawyers"); }}
+          onLocations={() => setActiveView("locations")} /> : null}
 
         {activeView === "lawyers" ? (
           <section className="lawyers-workspace" aria-label="Gestao operacional de advogados">
@@ -1804,7 +1807,7 @@ export function App() {
               {locationsFeedback.message ? <p className={`feedback ${locationsFeedback.kind}`}>{locationsFeedback.message}</p> : null}
               {cityToReactivate ? (
                 <div className="toolbar-actions" role="group" aria-label="Reativação de cidade">
-                  <button disabled={isSavingCity} onClick={() => void handleReactivateCity()} type="button">Reativar cidade</button>
+                  <button autoFocus disabled={isSavingCity} onClick={() => void handleReactivateCity()} type="button">Reativar cidade</button>
                   <button className="secondary-action" disabled={isSavingCity} onClick={() => { setCityToReactivate(null); setLocationsFeedback({ kind: "idle", message: "" }); }} type="button">Cancelar</button>
                 </div>
               ) : null}
@@ -1867,12 +1870,19 @@ export function App() {
               {expandedLocationList === "cities" ? (
               <div className="locations-list-section">
                 <p className="eyebrow">Cidades cadastradas</p>
-                <h2>{activeCities.length} registros</h2>
+                <h2>{filteredCities.length} {filteredCities.length === 1 ? "cidade encontrada" : "cidades encontradas"}</h2>
+                <div className="city-catalog-filters" aria-label="Consulta de cidades">
+                  <label className="field"><span>Consultar cidades do estado</span><select value={cityFilterStateId} onChange={event => setCityFilterStateId(event.target.value)}><option value="">Todos os estados</option>{states.map(state => <option key={state.id} value={state.id}>{state.code} - {state.name}</option>)}</select></label>
+                  <label className="field"><span>Buscar cidade</span><input value={citySearch} onChange={event => setCitySearch(event.target.value)} placeholder="Digite o nome da cidade" /></label>
+                  <label className="field"><span>Situação da cidade</span><select value={cityStatus} onChange={event => setCityStatus(event.target.value as "active" | "inactive" | "all")}><option value="active">Ativas</option><option value="inactive">Inativas</option><option value="all">Todas</option></select></label>
+                </div>
+                {!filteredCities.length ? <p className="empty-state" role="status">Nenhuma cidade encontrada com esses filtros. Confira o estado e o nome antes de cadastrar.</p> : null}
                 <div className="specialty-options simple-list">
                   {pagedCities.items.map((city) => (
                     <div className="location-record" key={city.id}>
                       <div>
                         <strong>{states.find((state) => state.id === city.stateId)?.code ?? "UF"} - {city.name}</strong>
+                        {!city.active ? <small className="city-inactive-label">Inativa</small> : null}
                       </div>
                       <div className="location-record-actions">
                         <button
@@ -1890,7 +1900,7 @@ export function App() {
                 </div>
                 <Pagination
                   page={pagedCities.page}
-                  totalItems={activeCities.length}
+                  totalItems={filteredCities.length}
                   totalPages={pagedCities.totalPages}
                   onNext={() => setCityPage((current) => Math.min(current + 1, pagedCities.totalPages))}
                   onPrevious={() => setCityPage((current) => Math.max(current - 1, 1))}

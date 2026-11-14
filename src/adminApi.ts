@@ -754,3 +754,17 @@ export async function deleteBenefit(token: string, id: string) {
   });
   if (!response.ok) await parseJson(response);
 }
+
+
+export type AdminDashboardData = {
+  generatedAt: string;
+  users: { total: number; clients: number; lawyerAccounts: number; blocked: number; newLast30Days: number };
+  lawyers: { total: number; available: number; approvedUnavailable: number; statuses: Record<LawyerStatus, number> };
+  coverage: { activeCities: number; servedCities: number; unservedCities: number; percentage: number; servedStates: number };
+  regions: Array<{ name: string; count: number; percentage: number }>;
+  states: Array<{ code: string; name: string; count: number; available: number; percentage: number }>;
+};
+export async function fetchAdminDashboard(token: string, signal?: AbortSignal): Promise<AdminDashboardData> {
+  const response = await fetch(`${API_BASE_URL}${apiContracts.adminDashboard}`, { headers: authHeaders(token), signal, cache: "no-store" });
+  return parseJson<AdminDashboardData>(response);
+}
