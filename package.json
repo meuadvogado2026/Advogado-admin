@@ -10,7 +10,8 @@
     "test": "vitest run",
     "build": "tsc --noEmit && vite build",
     "smoke": "tsx scripts/smoke.ts",
-    "harness": "tsx scripts/harness.ts"
+    "harness": "tsx scripts/harness.ts",
+    "test:ui": "node scripts/admin-regression.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

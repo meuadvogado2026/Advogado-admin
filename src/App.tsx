@@ -39,6 +39,7 @@ import {
   PaginationMeta,
   StateRecord,
   updateAdminUserBlocked,
+  updateAdminCity,
   updateBenefit,
   updateLawyer,
   updateLawyerStatus,
@@ -327,6 +328,10 @@ export function App() {
   const [cityDraft, setCityDraft] = useState({ stateId: "", name: "" });
   const [statePage, setStatePage] = useState(1);
   const [cityPage, setCityPage] = useState(1);
+  const [cityToReactivate, setCityToReactivate] = useState<CityRecord | null>(null);
+  const [isSavingCity, setIsSavingCity] = useState(false);
+
+  useEffect(() => { setCityToReactivate(null); }, [cityDraft.stateId, cityDraft.name]);
   const [expandedLocationList, setExpandedLocationList] = useState<"states" | "cities" | null>("cities");
   const [locationsFeedback, setLocationsFeedback] = useState<Feedback>({ kind: "idle", message: "" });
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
@@ -564,9 +569,10 @@ export function App() {
     [states, statePage]
   );
 
+  const activeCities = useMemo(() => cities.filter((city) => city.active), [cities]);
   const pagedCities = useMemo(
-    () => paginate(cities, cityPage, CITIES_PAGE_SIZE),
-    [cities, cityPage]
+    () => paginate(activeCities, cityPage, CITIES_PAGE_SIZE),
+    [activeCities, cityPage]
   );
 
   function formatLawyerCityState(lawyer: LawyerRecord) {
@@ -910,13 +916,11 @@ export function App() {
   const navItems: Array<{ view: AdminView; label: string }> = [
     { view: "dashboard", label: "Dashboard" },
     { view: "lawyers", label: "Advogados" },
-    { view: "newLawyer", label: "Novo Advogado" },
     { view: "locations", label: "Estados e Cidades" },
     { view: "prayers", label: "Oracoes" },
     { view: "users", label: "Usuarios" },
     { view: "partners", label: "Parceiros" },
-    { view: "benefits", label: "Beneficios" },
-    { view: "operation", label: "Operacao" }
+    { view: "benefits", label: "Beneficios" }
   ];
 
   function updateForm(field: Exclude<keyof LawyerFormState, "secondaryAreaIds">, value: string) {
@@ -1035,17 +1039,52 @@ export function App() {
 
   async function handleCreateCity(event: FormEvent) {
     event.preventDefault();
+    if (isSavingCity) return;
     if (!token || !cityDraft.stateId || !cityDraft.name.trim()) {
       setLocationsFeedback({ kind: "error", message: "Informe estado e cidade." });
       return;
     }
+    setCityToReactivate(null);
+    setIsSavingCity(true);
     try {
+      const stateCities = await fetchAdminCities(token, cityDraft.stateId);
+      const normalizeName = (name: string) => name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const existing = stateCities.find((city) => normalizeName(city.name) === normalizeName(cityDraft.name));
+      if (existing) {
+        if (!existing.active) {
+          setCityToReactivate(existing);
+          setLocationsFeedback({ kind: "info", message: `A cidade ${existing.name} já existe nesse estado e está inativa. Deseja reativar o cadastro existente?` });
+        } else {
+          const nextCities = await fetchAdminCities(token);
+          setCities(nextCities);
+          const index = nextCities.filter((city) => city.active).findIndex((city) => city.id === existing.id);
+          setCityPage(Math.max(1, Math.floor(index / CITIES_PAGE_SIZE) + 1));
+          setExpandedLocationList("cities");
+          setLocationsFeedback({ kind: "info", message: `A cidade ${existing.name} já está cadastrada e ativa nesse estado. Consulte o registro na lista de cidades.` });
+        }
+        return;
+      }
       await createAdminCity(token, { stateId: cityDraft.stateId, name: cityDraft.name, active: true });
       setCityDraft((current) => ({ ...current, name: "" }));
-      await handleLoadLocations();
+      await handleLoadLocations({ silent: true });
+      setLocationsFeedback({ kind: "success", message: "Cidade cadastrada com sucesso." });
     } catch (error) {
       setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Falha ao criar cidade." });
-    }
+    } finally { setIsSavingCity(false); }
+  }
+
+  async function handleReactivateCity() {
+    if (!token || !cityToReactivate || isSavingCity) return;
+    setIsSavingCity(true);
+    try {
+      await updateAdminCity(token, cityToReactivate.id, { active: true });
+      setCityToReactivate(null);
+      setCityDraft((current) => ({ ...current, name: "" }));
+      await handleLoadLocations({ silent: true });
+      setLocationsFeedback({ kind: "success", message: "Cidade reativada com sucesso. O cadastro e os vínculos existentes foram preservados." });
+    } catch (error) {
+      setLocationsFeedback({ kind: "error", message: error instanceof AdminApiError ? error.message : "Não foi possível reativar a cidade." });
+    } finally { setIsSavingCity(false); }
   }
 
   async function handleDeleteState(state: StateRecord) {
@@ -1493,13 +1532,10 @@ export function App() {
         <header className="page-header">
           <div>
             <p className="eyebrow">Painel administrativo</p>
-            <h1>{navItems.find((item) => item.view === activeView)?.label}</h1>
+            <h1>{activeView === "newLawyer" ? (editingLawyerId ? "Editar advogado" : "Novo advogado") : navItems.find((item) => item.view === activeView)?.label}</h1>
             <p className="session-label">{session.user.email ?? "admin"} - role admin</p>
           </div>
           <div className="header-actions">
-            <button className="header-action" onClick={startNewLawyer} type="button">
-              Novo advogado
-            </button>
             <button className="secondary-action" onClick={handleLogout} type="button">
               Sair
             </button>
@@ -1753,19 +1789,25 @@ export function App() {
               <form className="address-row" onSubmit={handleCreateCity}>
                 <label className="field">
                   <span>Estado da cidade</span>
-                  <select value={cityDraft.stateId} onChange={(event) => setCityDraft((current) => ({ ...current, stateId: event.target.value }))}>
+                  <select disabled={isSavingCity} value={cityDraft.stateId} onChange={(event) => setCityDraft((current) => ({ ...current, stateId: event.target.value }))}>
                     <option value="">Selecione</option>
                     {states.filter((state) => state.active).map((state) => <option key={state.id} value={state.id}>{state.code} - {state.name}</option>)}
                   </select>
                 </label>
                 <label className="field">
                   <span>Cidade</span>
-                  <input value={cityDraft.name} onChange={(event) => setCityDraft((current) => ({ ...current, name: event.target.value }))} />
+                  <input disabled={isSavingCity} value={cityDraft.name} onChange={(event) => setCityDraft((current) => ({ ...current, name: event.target.value }))} />
                 </label>
-                <button type="submit">Cadastrar cidade</button>
+                <button disabled={isSavingCity} type="submit">{isSavingCity ? "Aguarde..." : "Cadastrar cidade"}</button>
               </form>
-              <p className="empty-state">A lista mostra somente registros ativos. Cadastrar novamente um estado ou cidade inativo reativa o registro existente.</p>
+              <p className="empty-state">A lista mostra somente registros ativos. Ao informar uma cidade inativa, você poderá reativar o cadastro existente.</p>
               {locationsFeedback.message ? <p className={`feedback ${locationsFeedback.kind}`}>{locationsFeedback.message}</p> : null}
+              {cityToReactivate ? (
+                <div className="toolbar-actions" role="group" aria-label="Reativação de cidade">
+                  <button disabled={isSavingCity} onClick={() => void handleReactivateCity()} type="button">Reativar cidade</button>
+                  <button className="secondary-action" disabled={isSavingCity} onClick={() => { setCityToReactivate(null); setLocationsFeedback({ kind: "idle", message: "" }); }} type="button">Cancelar</button>
+                </div>
+              ) : null}
             </div>
 
             <aside className="panel result-panel">
@@ -1783,7 +1825,7 @@ export function App() {
                   onClick={() => setExpandedLocationList((current) => current === "cities" ? null : "cities")}
                   type="button"
                 >
-                  Cidades ({cities.length})
+                  Cidades ({activeCities.length})
                 </button>
               </div>
 
@@ -1825,7 +1867,7 @@ export function App() {
               {expandedLocationList === "cities" ? (
               <div className="locations-list-section">
                 <p className="eyebrow">Cidades cadastradas</p>
-                <h2>{cities.length} registros</h2>
+                <h2>{activeCities.length} registros</h2>
                 <div className="specialty-options simple-list">
                   {pagedCities.items.map((city) => (
                     <div className="location-record" key={city.id}>
@@ -1848,7 +1890,7 @@ export function App() {
                 </div>
                 <Pagination
                   page={pagedCities.page}
-                  totalItems={cities.length}
+                  totalItems={activeCities.length}
                   totalPages={pagedCities.totalPages}
                   onNext={() => setCityPage((current) => Math.min(current + 1, pagedCities.totalPages))}
                   onPrevious={() => setCityPage((current) => Math.max(current - 1, 1))}

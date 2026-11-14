@@ -531,9 +531,17 @@ export async function deleteAdminState(token: string, id: string) {
 }
 
 export async function fetchAdminCities(token: string, stateId?: string): Promise<CityRecord[]> {
-  const query = `?page=1&pageSize=50${stateId ? `&stateId=${encodeURIComponent(stateId)}` : ""}`;
-  const response = await fetch(`${API_BASE_URL}${apiContracts.adminCities}${query}`, { headers: authHeaders(token) });
-  return (await parseJson<{ cities: CityRecord[] }>(response)).cities;
+  const cities: CityRecord[] = [];
+  let page = 1;
+  while (true) {
+    const params = new URLSearchParams({ page: String(page), pageSize: "50", includeInactive: "true" });
+    if (stateId) params.set("stateId", stateId);
+    const response = await fetch(`${API_BASE_URL}${apiContracts.adminCities}?${params}`, { headers: authHeaders(token) });
+    const data = await parseJson<{ cities: CityRecord[]; pagination?: PaginationMeta }>(response);
+    cities.push(...data.cities);
+    if (!data.pagination || page >= data.pagination.totalPages) return cities;
+    page += 1;
+  }
 }
 
 export async function createAdminCity(

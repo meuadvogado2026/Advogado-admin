@@ -870,6 +870,7 @@ textarea {
   flex-direction: column;
   gap: 16px;
   min-height: 224px;
+  min-width: 0;
   padding: 20px;
   position: relative;
 }
@@ -921,8 +922,24 @@ textarea {
 }
 
 .request-footer {
-  align-items: end;
+  align-items: start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   margin-top: auto;
+  min-width: 0;
+}
+
+.request-footer small,
+.request-item .prayer-message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.request-footer button {
+  justify-self: end;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
 }
 
 .prayer-read-action {
