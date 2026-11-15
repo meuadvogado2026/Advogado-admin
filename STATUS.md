@@ -136,3 +136,9 @@ Dashboard consome API agregada:6 cards, regioes/UF com base explicada, status e 
 ## SPEC-023 - Operacao no dashboard / 2026-11-14
 
 Tres blocos no dashboard: oracoes pendentes/lidas/total e percentual lido; parceiros/beneficios total/ativos/inativos e percentual ativo. Atalhos abrem filtros received/read ou gestao correta. Loading/erro/vazio/refresh preservados e sem confundir leitura com resposta. Harness35 testes/tipos/build/smoke e Chrome fixtures4larguras OK. Publicar apos API estendida.
+
+## SPEC-024 - Acesso seguro / 2026-11-15
+
+Estado: EM_VALIDACAO; nao homologado. Fonte em worktree `.codex-auth-024`, branch `feat/secure-auth-resend`, preservando checkout original.
+Recuperacao e convite por link oficial Supabase, enviado via API Resend no backend. Nenhuma senha em e-mail. Formulario consome token_hash recovery apenas no POST; nenhum JWT de recuperacao entregue ao app/browser. API aditiva `/v1/auth/password-recovery` e `/v1/auth/password-reset`; reenvio admin preserva identidade. Sem nova migration. API antes web/mobile, com smoke e rollback de app/web antes de remover contratos.
+Harness e limites em AUTH_LINKS.md; evidencias gerais `../../harness-results/spec024-acesso-seguro-resend.md` a partir do worktree. Aceitacao pelo provedor nao comprova recebimento. Android/APK, Google real, configuracao e entrega Resend ainda precisam de prova. Nao e 10/10 nem aprovacao Play.

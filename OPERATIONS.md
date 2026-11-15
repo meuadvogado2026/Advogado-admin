@@ -55,3 +55,6 @@ Dashboard consome API agregada:6 cards, regioes/UF com base explicada, status e 
 ## SPEC-023 - Operacao no dashboard / 2026-11-14
 
 Tres blocos no dashboard: oracoes pendentes/lidas/total e percentual lido; parceiros/beneficios total/ativos/inativos e percentual ativo. Atalhos abrem filtros received/read ou gestao correta. Loading/erro/vazio/refresh preservados e sem confundir leitura com resposta. Harness35 testes/tipos/build/smoke e Chrome fixtures4larguras OK. Publicar apos API estendida.
+
+## SPEC-024
+Consultar AUTH_LINKS.md para envs, rollout/rollback, limites de fila/replicas e gates de recebimento/Android. Nenhum MX/SMTP alterado.
