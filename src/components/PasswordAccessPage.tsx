@@ -40,7 +40,7 @@ export function PasswordAccessPage() {
       }
       if (proof) {
         setProof(""); setPassword(""); setConfirmation(""); setDone(true);
-        setMessage("Senha definida. Entre no aplicativo com seu e-mail e a nova senha. Administradores podem voltar ao login do painel.");
+        setMessage("Senha definida. Entre no aplicativo com seu e-mail e a nova senha.");
       } else setMessage(body.message);
     } catch (error) {
       setMessage(error instanceof Error && error.name !== "TimeoutError" && error.name !== "TypeError" ? error.message : "Falha de conexão. Tente novamente; se o link já foi usado, solicite outro.");
@@ -57,7 +57,7 @@ export function PasswordAccessPage() {
       {!done && <button disabled={busy} type="submit">{busy ? "Aguarde…" : proof ? "Definir senha" : "Enviar link seguro"}</button>}
       <p role="status" aria-live="polite">{message}</p>
       {proof && <><a href={`advogado20://auth/password-reset#token_hash=${proof}&type=recovery`} referrerPolicy="no-referrer">Abrir no aplicativo Android</a><p>Se o app não estiver instalado, conclua neste navegador.</p><button type="button" disabled={busy} onClick={() => setProof("")}>Solicitar outro link</button></>}
-      <a href="/login">Voltar ao login administrativo</a>
+      <a href="https://advogado20.com.br">Voltar ao site</a>
     </form>
   </section></main>;
 }
