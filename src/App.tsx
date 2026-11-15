@@ -1,3 +1,4 @@
+import { PasswordAccessPage } from "./components/PasswordAccessPage";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AdminApiError,
@@ -119,7 +120,7 @@ function formatGeocodeMetadata(lawyer: LawyerRecord) {
 function formatAccessState(lawyer: LawyerRecord) {
   if (lawyer.firstLoginCompletedAt) return "Acesso ativo";
   if (lawyer.mustChangePassword) return "Troca de senha pendente";
-  if (lawyer.accessInvitedAt) return "Convite enviado";
+  if (lawyer.accessInvitedAt) return "Convite registrado";
   return "Sem acesso";
 }
 
@@ -216,6 +217,7 @@ const roleLabels: Record<AdminUserRecord["role"], string> = {
 
 function FirstAccessPage() {
   const invite = useMemo(() => readInviteHash(), []);
+  useEffect(() => { window.history.replaceState(null, "", "/primeiro-acesso"); }, []);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(() => {
@@ -310,6 +312,7 @@ function FirstAccessPage() {
 }
 
 export function App() {
+  if (window.location.pathname === "/redefinir-senha") return <PasswordAccessPage />;
   if (window.location.pathname === "/primeiro-acesso") {
     return <FirstAccessPage />;
   }
@@ -1200,8 +1203,10 @@ export function App() {
         message: editingLawyerId
           ? "Advogado atualizado."
           : createdAccess?.status === "invited"
-            ? "Advogado salvo e convite de acesso enviado por e-mail."
-            : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
+            ? "Advogado salvo. Provedor aceitou o convite; recebimento ainda não confirmado."
+            : createdAccess?.status === "failed"
+              ? "Advogado salvo, mas o convite não foi enviado. Use Reenviar convite no cadastro."
+              : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
       });
       if ("lawyer" in response) {
         setLawyers((current) => {
@@ -1244,7 +1249,7 @@ export function App() {
         message:
           response.access.delivery === "simulated"
             ? "Convite de acesso simulado no ambiente local."
-            : "Convite de acesso enviado por e-mail."
+            : "Provedor aceitou o convite. Recebimento ainda não confirmado."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao ativar acesso.";
@@ -1499,6 +1504,7 @@ export function App() {
               />
             </label>
 
+            <a href="/redefinir-senha">Esqueci minha senha</a>
             <button disabled={isCheckingSession || isLoggingIn || !loginEmail || !loginPassword} type="submit">
               {isCheckingSession ? "Validando sessao" : isLoggingIn ? "Entrando" : "Entrar"}
             </button>
@@ -1751,14 +1757,14 @@ export function App() {
                       Confirmar localizacao
                     </button>
                   ) : null}
-                  {!selectedLawyer.accessInvitedAt ? (
+                  {true ? (
                     <button
                       className="secondary-action"
                       disabled={invitingLawyerId === selectedLawyer.id}
                       onClick={() => handleInviteLawyerAccess(selectedLawyer)}
                       type="button"
                     >
-                      {invitingLawyerId === selectedLawyer.id ? "Enviando convite" : "Ativar acesso"}
+                      {invitingLawyerId === selectedLawyer.id ? "Enviando convite" : selectedLawyer.accessInvitedAt ? "Reenviar convite" : "Ativar acesso"}
                     </button>
                   ) : null}
                 </>

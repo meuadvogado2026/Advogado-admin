@@ -70,3 +70,6 @@ Regras:
 - O admin nao mostra coordenada exata nem CEP completo no detalhe.
 - Backend continua autoridade para role admin e regra de aprovacao com coordenada valida.
 - Sem backend/schema novo neste ciclo.
+
+## Delta local SPEC-024 (nao publicado)
+Fonte: analise direta do codigo, 2026-11-15. Contratos/ownership e fluxo em AUTH_LINKS.md. Camadas existentes preservadas; provas remotas sao gates separados.

@@ -96,8 +96,9 @@ export type LawyerRecord = {
 export type LawyerAccessResult = {
   lawyer: LawyerRecord;
   access: {
-    status: "invited" | "not_configured";
-    delivery: "email" | "simulated" | "none";
+    status: "invited" | "not_configured" | "failed";
+    delivery: "email" | "simulated" | "none" | "failed";
+    providerStatus?: "accepted" | "simulated" | "failed";
     invitedAt?: string;
   };
   persistence: string;

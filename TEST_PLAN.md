@@ -203,3 +203,8 @@ Dashboard consome API agregada:6 cards, regioes/UF com base explicada, status e 
 ## SPEC-023 - Operacao no dashboard / 2026-11-14
 
 Tres blocos no dashboard: oracoes pendentes/lidas/total e percentual lido; parceiros/beneficios total/ativos/inativos e percentual ativo. Atalhos abrem filtros received/read ou gestao correta. Loading/erro/vazio/refresh preservados e sem confundir leitura com resposta. Harness35 testes/tipos/build/smoke e Chrome fixtures4larguras OK. Publicar apos API estendida.
+
+## SPEC-024
+Harness + testes de prova/replay/roles/compensacao, deeplink/refresh/logout e smoke webmock. Prova Supabase real com cleanup no back/scripts/auth024-provider-smoke.ts, executada somente para conta descartavel autorizada. Roteiroreal de email, Google, Android cold/warm e APK e bloqueante; consultar AUTH_LINKS.md.
+
+SPEC-024 TASK-245: CI quality.yml executa npmci/Harness/audit-high em Node22/Linux, com preservacao de evidencias. Excecao TDD para configuracao: prova substituta e execucao real do workflow GitHub; nao substitui Resend/Android.
