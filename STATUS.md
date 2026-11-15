@@ -148,3 +148,23 @@ Preparacao de PR e CI independente por repositorio. Adicionado quality.yml com N
 
 ### PR e CI remoto - 2026-11-15
 PR rascunho: https://github.com/meuadvogado2026/Advogado-admin/pull/6. CI Node22/Linux do candidato passou (run43721759360), com npmci, Harness e audit-high; artefatos baixados na raiz harness-results/spec024-ci-admin. Producao ainda nao atualizada. Confirmacao de AUTH_IP_SOURCE no Runtime e prova de envio/recebimento/Android continuam pendentes. CI e revisao de candidato, nao homologacao de produto.
+
+
+## Continuidade Auth024 - 2026-11-15 / validacao humana
+
+Web publicada por PR6/05a9d6f, rota publica /redefinir-senha com headers de privacidade confirmados. Backend R2 diferencia assuntos/horario/referencia de cada email. Usuario confirmou troca de senha e login no painel do advogado; nao foi necessario implementar mudanca de UX para a hipotese anterior de credencial errada. Novo convite descartavel aguarda recebimento/definicao. Android/Google e reenvio real ainda pendentes.
+
+
+### Esclarecimento confirmado pelo usuario - 2026-11-15
+
+A troca de senha e o login normal no painel do advogado foram na conta de advogado ja existente do usuario. Essa prova humana nao pertence ao alias descartavel client do Harness. Recebimento/troca/login de advogado existente confirmados pelo usuario; ID/role dessa conta nao foram aferidos pelo Harness. A fixture cliente possui provas independentes de dominio/senha antiga recusada. Primeiro acesso do novo advogado descartavel enviado as13h29 ainda aguarda confirmacao; nao reenviar/invalidar esse link antes do teste humano. Android/Google/APK seguem pendentes.
+
+
+### Encerramento de fixtures e preview autorizado - 2026-11-15
+
+Usuario pediu seguir e aprovou o fluxo da conta existente; primeiro acesso humano da fixture permanece nao testado. Reenvio real HTTP200/Resend accepted com identidade preservada; nao e prova de recebimento. Fixtures client/lawyer removidas com ownership e ausencia Auth/dominio verificados, evidencia raiz spec024-live-final-cleanup.json. Proximo passo APK preview0.1.1/vc8 para validar Android; nenhum AAB/Play/landing publicado.
+
+
+## Correcao de codificacao antes da entrega - 2026-11-15
+
+Inspecao estrita UTF-8 detectou bytes CP1252 isolados em mensagens Auth de mobile/PasswordAccessScreen, admin/App e back/adminLawyers/routes. Corrigidos apenas esses bytes, preservando contratos/comportamento. Prova inicial: decode UTF-8 falhou; apos correcao todos os fontes/tests/scripts ts/tsx/json/css dos worktrees decodificam sem erro. Harness completo repetido nos tres. Build vc8 cancelado antes de disponibilizacao para evitar texto corrompido. Proximo candidato vc9 (vc8 ja observado no inventario), mesma assinatura/package. Teste Android sera manual pelo usuario, conforme escolha expressa.
