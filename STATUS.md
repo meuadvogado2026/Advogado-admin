@@ -145,3 +145,6 @@ Harness e limites em AUTH_LINKS.md; evidencias gerais `../../harness-results/spe
 
 ## Continuidade SPEC-024 - 2026-11-15
 Preparacao de PR e CI independente por repositorio. Adicionado quality.yml com Node22/npmci/Harness/audit-high e artefatos, permissoes somente leitura, sem credenciais/runtimeproducao/migrationsremotas. Sem deploy por este workflow. Resultados remotos e configuracao de envio/Android continuam a validar.
+
+### PR e CI remoto - 2026-11-15
+PR rascunho: https://github.com/meuadvogado2026/Advogado-admin/pull/6. CI Node22/Linux do candidato passou (run43721759360), com npmci, Harness e audit-high; artefatos baixados na raiz harness-results/spec024-ci-admin. Producao ainda nao atualizada. Confirmacao de AUTH_IP_SOURCE no Runtime e prova de envio/recebimento/Android continuam pendentes. CI e revisao de candidato, nao homologacao de produto.
