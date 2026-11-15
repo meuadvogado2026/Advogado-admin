@@ -1203,9 +1203,9 @@ export function App() {
         message: editingLawyerId
           ? "Advogado atualizado."
           : createdAccess?.status === "invited"
-            ? "Advogado salvo. Provedor aceitou o convite; recebimento ainda n„o confirmado."
+            ? "Advogado salvo. Provedor aceitou o convite; recebimento ainda n√£o confirmado."
             : createdAccess?.status === "failed"
-              ? "Advogado salvo, mas o convite n„o foi enviado. Use Reenviar convite no cadastro."
+              ? "Advogado salvo, mas o convite n√£o foi enviado. Use Reenviar convite no cadastro."
               : "Advogado salvo. Se aprovado, ja entra elegivel para match com coordenada valida."
       });
       if ("lawyer" in response) {
@@ -1249,7 +1249,7 @@ export function App() {
         message:
           response.access.delivery === "simulated"
             ? "Convite de acesso simulado no ambiente local."
-            : "Provedor aceitou o convite. Recebimento ainda n„o confirmado."
+            : "Provedor aceitou o convite. Recebimento ainda n√£o confirmado."
       });
     } catch (error) {
       const message = error instanceof AdminApiError ? error.message : "Falha ao ativar acesso.";
